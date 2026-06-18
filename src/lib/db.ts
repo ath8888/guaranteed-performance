@@ -1,6 +1,6 @@
 import { get, set, createStore } from "idb-keyval";
-import type { Standard, TrainingState, CheckIn, SessionLog } from "./types";
-import { progressTrainingMax, etaDate } from "./plan";
+import type { Standard, TrainingState, CheckIn, SessionLog, SetActual } from "./types";
+import { progressTrainingMax, wendlerNextTM, etaDate, buildWeek } from "./plan";
 
 const store = typeof indexedDB !== "undefined" ? createStore("gs-db", "kv") : undefined;
 
