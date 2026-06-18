@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { resetAll } from "@/lib/db";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { resetAll, standardService } from "@/lib/db";
+import { STANDARD_META } from "@/lib/types";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings" }] }),
@@ -15,6 +16,14 @@ function Settings() {
   const qc = useQueryClient();
   const [confirming, setConfirming] = useState(false);
   const [working, setWorking] = useState(false);
+  const [archivingId, setArchivingId] = useState<string | null>(null);
+
+  const { data: standards } = useQuery({
+    queryKey: ["standards", "all"],
+    queryFn: () => standardService.listAll(),
+  });
+
+  const active = (standards ?? []).filter(s => s.status !== "archived");
 
   async function doReset() {
     setWorking(true);
@@ -22,6 +31,12 @@ function Settings() {
     await qc.invalidateQueries();
     setWorking(false);
     navigate({ to: "/" });
+  }
+
+  async function archive(id: string) {
+    await standardService.archive(id);
+    setArchivingId(null);
+    await qc.invalidateQueries();
   }
 
   return (
@@ -37,6 +52,56 @@ function Settings() {
       <section className="rounded-xl border border-hairline bg-card">
         <Row label="Version" value={VERSION} />
         <Row label="Storage" value="On this device only" />
+      </section>
+
+      <section className="mt-6">
+        <p className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">Standards</p>
+        <div className="rounded-xl border border-hairline bg-card">
+          {active.length === 0 ? (
+            <p className="px-5 py-4 text-sm text-ink-soft">No active standards.</p>
+          ) : (
+            active.map(s => {
+              const meta = STANDARD_META[s.type];
+              const isConfirming = archivingId === s.id;
+              return (
+                <div key={s.id} className="border-b border-hairline px-5 py-4 last:border-b-0">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">{meta.label}</span>
+                    {!isConfirming && (
+                      <button
+                        onClick={() => setArchivingId(s.id)}
+                        className="text-xs font-medium uppercase tracking-wider text-ink-soft"
+                      >
+                        Archive
+                      </button>
+                    )}
+                  </div>
+                  {isConfirming && (
+                    <>
+                      <p className="mt-2 text-xs text-ink-soft">
+                        Archiving removes this standard from Home, Plan, Check-in, and Guarantee. Plan history is kept.
+                      </p>
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => setArchivingId(null)}
+                          className="rounded-md border border-hairline py-2.5 text-xs font-medium uppercase tracking-wider text-ink-soft"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => archive(s.id)}
+                          className="rounded-md bg-foreground py-2.5 text-xs font-medium uppercase tracking-wider text-background"
+                        >
+                          Confirm archive
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
       </section>
 
       <section className="mt-6">
