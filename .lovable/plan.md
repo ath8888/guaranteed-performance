@@ -1,45 +1,69 @@
 
-# Phase 1 — Polish & Ship
+# Inverted Deadline → Computed Target Date
 
-Close out the `docs/tasks.md` § Upcoming list, then publish so you can install the PWA on your Android phone and live-test for a week.
+App computes a Target date from baseline + target using the plan engine's own per-wave progression. User never enters a date.
 
-## 1. Setup — deadline validation
-- Compute weeks between today and the chosen deadline.
-- If `< 4 weeks`: show calm inline note under the date field:
-  *"Less than 4 weeks. That may not be enough time to be certain."*
-  Do **not** block submit — user can override (per the "no hype, no apology" tone).
-- Default deadline stays at +12 weeks.
+## 1. ETA engine — new in `src/lib/plan.ts`
 
-## 2. Setup — partial draft persistence
-- Add a `draftService` to `src/lib/db.ts` backed by IndexedDB key `setup-draft`.
-- On every change to `picked` / `deadline` / `step`, debounce-save (200ms).
-- On mount: rehydrate the draft if no Standards exist yet.
-- On successful save (`Lock in standards`): clear the draft.
+```ts
+/** Minimum number of 4-week waves needed to go from current → target,
+ *  using the same progression the Plan engine actually applies. */
+export function wavesToTarget(s: Standard, currentValue: number): number {
+  const meta = STANDARD_META[s.type];
+  const met = meta.lower ? currentValue <= s.target : currentValue >= s.target;
+  if (met) return 0;
 
-## 3. Settings sheet (new screen)
-- New route `src/routes/settings.tsx` reached from a small gear icon top-right of Home (not in bottom nav — keeps nav at 4 items per spec).
-- Contents (plain list, single column):
-  - **App version** — read from `package.json` version baked at build time via Vite `define`.
-  - **Reset all data** — destructive button → confirm dialog → calls existing `resetAll()` → navigates to `/`.
-- Tone-compliant copy: *"Reset all data. Standards, check-ins, and plan history will be deleted from this device. This cannot be undone."*
+  switch (s.type) {
+    case "bench":
+    case "ohp":      return Math.ceil((s.target - currentValue) / 5);
+    case "squat":
+    case "deadlift": return Math.ceil((s.target - currentValue) / 10);
+    case "pushups":  return Math.ceil((s.target - currentValue) / 2);
+    case "run3mi": {
+      // Pace is sec/mile; ~5 sec/mile gained per wave is the conservative
+      // assumption until a real Week-4 test refines it.
+      const curPace = currentValue / 3;
+      const tgtPace = s.target / 3;
+      return Math.ceil((curPace - tgtPace) / 5);
+    }
+  }
+}
 
-## 4. Empty-state copy audit
-Per `docs/design-guidelines.md`, normalize to the exact strings:
-- Home (no standards): *"No standard set yet. Choose the test you need to pass."*
-- Check-in history (no entries): *"No check-ins yet. Log your first attempt to see where you stand."*
-- Guarantee (pre-deadline): *"Refund requests open after your test date if the standard wasn't met."*
-- Plan (no standards): *"No standard set yet."*
+/** Days to target, rounded up to a whole week boundary. */
+export function etaDate(s: Standard, currentValue: number, from = new Date()): Date | null {
+  const waves = wavesToTarget(s, currentValue);
+  if (waves === 0) return null;            // already met → caller shows "Ready now"
+  const d = new Date(from);
+  d.setDate(d.getDate() + waves * 28);
+  return d;
+}
+```
 
-## 5. Tasks.md update
-Move the polish items from Upcoming → Completed; add an "🧪 Self-test (week of {date})" section with what to watch for: install on Android, run a full wave on at least one Standard, log 2–3 check-ins, verify pace math on the Plan screen matches expectations, note any copy that feels off-tone.
+## 2. Setup screen — remove deadline input
+- Drop the date `<input>` and the <4-weeks warning entirely.
+- In the values step, under each Standard's baseline/target pair, show a live preview line:
+  - If both fields parse and `wavesToTarget > 0`: `Target date: {etaDate}` (mm/dd/yyyy, locale-aware) + `{waves} wave{s} (~{waves×4} weeks)`
+  - If already met: `Ready now`
+  - If fields incomplete: nothing
+- "Lock in standards" still saves; `standard.deadline` is set to `etaDate(s, baseline)` (or `today` for the already-met case so Guarantee math still works).
 
-## 6. Publish
-Use the publish tool with `website_info_status: already_relevant` (title/description/manifest/icons all set during MVP build).
+## 3. Schema — keep `deadline` field, repurpose meaning
+- No type change. `Standard.deadline` now stores the computed target date.
+- Existing data keeps working; the value just gets overwritten on the next wave advance.
 
-## Out of scope (still deferred to Phase 2)
-Supabase, Stripe, Certainty Score, reminders, Capacitor — unchanged.
+## 4. Recompute on wave advance only
+- In `advanceWave()` (in `src/lib/db.ts`):
+  - After bumping cycle/week and updating `trainingMax`, also recompute and save `standard.deadline = etaDate(s, newCurrentValue)` where `newCurrentValue = latest check-in or baseline`.
+  - For runs, `newCurrentValue` is the just-logged test time (the `amrapValue` passed in).
+  - If `wavesToTarget === 0`, set `deadline = new Date().toISOString()` so Guarantee correctly shows "Standard met."
+- Mid-wave check-ins do NOT touch the date — the displayed value just shifts under "Current."
 
-After publish, install steps:
-1. Open the printed `.lovable.app` URL on your Android Chrome
-2. Menu → Install app
-3. Launch from home screen, run through Setup, then live with it for the week
+## 5. Display
+- **Home card**: replace `{days}d left` with `Target {Mmm d}` (computed from `standard.deadline`). If already met, show `Ready` in primary blue.
+- **Guarantee card**: replace `By {date}` with `Target {date}`. Refund eligibility logic (`past && !hit`) is unchanged — still keyed off `standard.deadline`.
+
+## 6. Tasks.md
+Add a brief "Date model" note explaining: deadline = computed, never user-entered; recomputed only on wave advance.
+
+## Out of scope
+No new screens. No retroactive recompute for Standards created before this change — next wave advance will fix them automatically (or user can reset via Settings).
