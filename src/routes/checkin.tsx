@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { standardService, checkinService } from "@/lib/db";
+import { standardService, checkinService, trainingService, advanceWave } from "@/lib/db";
 import { STANDARD_META } from "@/lib/types";
 import { fmtValue, parseTime } from "@/lib/plan";
 
@@ -35,6 +35,12 @@ function Checkin() {
       value: v,
       date: new Date().toISOString(),
     });
+    // If this is a Week-4 run test, advance the wave automatically using
+    // the logged time as the new currentPaceSec source.
+    if (active.type === "run3mi") {
+      const t = await trainingService.get(active.id);
+      if (t && t.week === 4) await advanceWave(active, v);
+    }
     setValue("");
     qc.invalidateQueries();
   }

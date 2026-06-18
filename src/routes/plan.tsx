@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { standardService, trainingService, sessionService } from "@/lib/db";
+import { standardService, trainingService, sessionService, advanceWave } from "@/lib/db";
 import { STANDARD_META } from "@/lib/types";
 import { buildWeek, type Session } from "@/lib/plan";
 
@@ -81,6 +81,33 @@ function Plan() {
                   </li>
                 ))}
               </ol>
+              {training.week !== 4 && done.length > 0 && done.every(Boolean) && (
+                <button
+                  onClick={async () => {
+                    await advanceWave(s);
+                    qc.invalidateQueries();
+                  }}
+                  className="mt-3 w-full rounded-md border border-primary py-3 text-xs font-medium uppercase tracking-wider text-primary"
+                >
+                  Advance to week {training.week + 1} →
+                </button>
+              )}
+              {training.week === 4 && s.type !== "run3mi" && done.length > 0 && done.every(Boolean) && (
+                <button
+                  onClick={async () => {
+                    await advanceWave(s);
+                    qc.invalidateQueries();
+                  }}
+                  className="mt-3 w-full rounded-md border border-primary py-3 text-xs font-medium uppercase tracking-wider text-primary"
+                >
+                  Complete wave → start cycle {training.cycle + 1}
+                </button>
+              )}
+              {training.week === 4 && s.type === "run3mi" && (
+                <p className="mt-3 text-[11px] uppercase tracking-wider text-muted-foreground">
+                  Log your 3-mile test on Check-in to advance the wave.
+                </p>
+              )}
             </section>
           );
         })}
