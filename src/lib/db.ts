@@ -113,11 +113,34 @@ export const sessionService = {
       return true;
     }
   },
+  async saveActuals(
+    log: Omit<SessionLog, "id" | "completedAt" | "sets">,
+    sets: SetActual[]
+  ) {
+    const all = await read<SessionLog[]>(K.sessions, []);
+    const match = all.find(s =>
+      s.standardId === log.standardId &&
+      s.cycle === log.cycle &&
+      s.week === log.week &&
+      s.sessionIndex === log.sessionIndex
+    );
+    if (match) {
+      match.sets = sets;
+      match.completedAt = new Date().toISOString();
+    } else {
+      all.push({ ...log, sets, id: crypto.randomUUID(), completedAt: new Date().toISOString() });
+    }
+    await write(K.sessions, all);
+  },
+  async find(standardId: string, cycle: number, week: number, sessionIndex: number) {
+    const all = await this.list(standardId);
+    return all.find(s => s.cycle === cycle && s.week === week && s.sessionIndex === sessionIndex);
+  },
   async isDone(standardId: string, cycle: number, week: number, sessionIndex: number) {
     const all = await this.list(standardId);
     return all.some(s => s.cycle === cycle && s.week === week && s.sessionIndex === sessionIndex);
   },
-};
+}; 
 
 // ---------- Derived ----------
 /** Current value = latest check-in if any, else baseline (locked at setup). */
