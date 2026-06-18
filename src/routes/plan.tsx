@@ -161,7 +161,7 @@ function SessionCard({
           id: crypto.randomUUID(),
           standardId: standard.id,
           value: reps,
-          date: new Date().toISOString().slice(0, 10),
+          date: new Date().toISOString(),
         });
       }
     }
