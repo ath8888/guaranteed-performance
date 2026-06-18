@@ -33,6 +33,8 @@ export interface CheckIn {
   date: string;
 }
 
+export interface SetActual { weight?: number; reps?: number }
+
 export interface SessionLog {
   id: string;
   standardId: string;
@@ -40,4 +42,5 @@ export interface SessionLog {
   week: number;
   sessionIndex: number;   // 0..n within the week
   completedAt: string;
+  sets?: SetActual[];     // index matches Session.sets order
 }
