@@ -178,22 +178,27 @@ function Setup() {
             return (
               <div key={t} className="rounded-xl border border-hairline bg-card p-4">
                 <p className="font-medium">{meta.label}</p>
-                <p className="mt-1 text-xs text-muted-foreground">Baseline = today. Target = required to pass.</p>
                 <div className="mt-3 grid grid-cols-2 gap-3">
-                  <input
-                    inputMode={meta.kind === "time" ? "text" : "numeric"}
-                    placeholder={`Baseline (${placeholder})`}
-                    value={d.baseline}
-                    onChange={e => setField(t, "baseline", e.target.value)}
-                    className="rounded-md border border-hairline bg-background px-3 py-3 text-base"
-                  />
-                  <input
-                    inputMode={meta.kind === "time" ? "text" : "numeric"}
-                    placeholder={`Target (${placeholder})`}
-                    value={d.target}
-                    onChange={e => setField(t, "target", e.target.value)}
-                    className="rounded-md border border-hairline bg-background px-3 py-3 text-base"
-                  />
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Baseline</label>
+                    <input
+                      inputMode={meta.kind === "time" ? "text" : "numeric"}
+                      placeholder={placeholder}
+                      value={d.baseline}
+                      onChange={e => setField(t, "baseline", e.target.value)}
+                      className="mt-1 w-full rounded-md border border-hairline bg-background px-3 py-3 text-base"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Target</label>
+                    <input
+                      inputMode={meta.kind === "time" ? "text" : "numeric"}
+                      placeholder={placeholder}
+                      value={d.target}
+                      onChange={e => setField(t, "target", e.target.value)}
+                      className="mt-1 w-full rounded-md border border-hairline bg-background px-3 py-3 text-base"
+                    />
+                  </div>
                 </div>
 
                 {bothEntered && !directionOk && (
