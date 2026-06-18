@@ -71,12 +71,14 @@ function Setup() {
       const baseline = parseFor(t, d.baseline);
       const target = parseFor(t, d.target);
       if (!baseline || !target) continue;
+      const partial = { type: t, baseline, target } as Standard;
+      const eta = etaDate(partial, baseline);
       const s: Standard = {
         id: crypto.randomUUID(),
         type: t,
         baseline,
         target,
-        deadline: new Date(deadline).toISOString(),
+        deadline: (eta ?? new Date()).toISOString(),
         createdAt: new Date().toISOString(),
         status: "active",
       };
@@ -134,23 +136,16 @@ function Setup() {
 
       {step === "values" && (
         <div className="mt-8 space-y-5">
-          <Field label="Deadline">
-            <input
-              type="date"
-              value={deadline}
-              onChange={e => setDeadline(e.target.value)}
-              className="w-full rounded-md border border-hairline bg-card px-4 py-3 text-base"
-            />
-            {tightDeadline && (
-              <p className="mt-2 text-xs text-ink-soft">
-                Less than 4 weeks. That may not be enough time to be certain.
-              </p>
-            )}
-          </Field>
           {selected.map(t => {
             const d = picked[t]!;
             const meta = STANDARD_META[t];
             const placeholder = meta.kind === "time" ? "mm:ss" : meta.unit;
+            const baselineN = parseFor(t, d.baseline);
+            const targetN = parseFor(t, d.target);
+            const ready = baselineN > 0 && targetN > 0;
+            const partial = ready ? ({ type: t, baseline: baselineN, target: targetN } as Standard) : null;
+            const waves = partial ? wavesToTarget(partial, baselineN) : -1;
+            const eta = partial ? etaDate(partial, baselineN) : null;
             return (
               <div key={t} className="rounded-xl border border-hairline bg-card p-4">
                 <p className="font-medium">{meta.label}</p>
@@ -171,6 +166,21 @@ function Setup() {
                     className="rounded-md border border-hairline bg-background px-3 py-3 text-base"
                   />
                 </div>
+                {ready && (
+                  <div className="mt-3 border-t border-hairline pt-3">
+                    {waves === 0 || !eta ? (
+                      <p className="num text-sm font-semibold text-primary">Ready now</p>
+                    ) : (
+                      <>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Target date</p>
+                        <p className="num mt-1 text-base font-semibold">{fmtDate(eta)}</p>
+                        <p className="num mt-1 text-xs text-ink-soft">
+                          {waves} wave{waves === 1 ? "" : "s"} · ~{waves * 4} weeks
+                        </p>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
