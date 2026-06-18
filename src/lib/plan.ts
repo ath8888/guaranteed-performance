@@ -62,6 +62,26 @@ export function progressTrainingMax(s: Standard, current: number, amrapValue?: n
   return current + 10; // squat / deadlift
 }
 
+/**
+ * Standard Wendler decision from the Week 3 top-set AMRAP:
+ *   reps >= prescribed + 1 → bump TM (+5 upper, +10 lower, +2 pushups)
+ *   reps == prescribed      → hold TM
+ *   reps <  prescribed      → reset: TM * 0.9 (rounded)
+ * Returns currentTM unchanged for run3mi (handled elsewhere) or missing data.
+ */
+export function wendlerNextTM(s: Standard, currentTM: number, amrapReps?: number): number {
+  if (s.type === "run3mi") return currentTM;
+  const prescribed = 1; // Week 3 top set prescribes 1 rep (5/3/1)
+  if (amrapReps == null || amrapReps <= 0) return currentTM;
+  if (amrapReps < prescribed) {
+    // reset
+    if (s.type === "pushups") return Math.max(1, Math.round(currentTM * 0.9));
+    return roundLb(currentTM * 0.9);
+  }
+  if (amrapReps === prescribed) return currentTM;
+  return progressTrainingMax(s, currentTM);
+}
+
 export function buildWeek(s: Standard, t: TrainingState): Session[] {
   const week = t.week;
   if (s.type === "run3mi") {
