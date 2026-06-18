@@ -33,7 +33,7 @@ function Card({ s }: { s: Standard }) {
   const meta = STANDARD_META[s.type];
   const { data: latest } = useQuery({
     queryKey: ["latest", s.id],
-    queryFn: () => checkinService.latest(s.id),
+    queryFn: async () => (await checkinService.latest(s.id)) ?? null,
   });
   const current = latest?.value ?? s.baseline;
   const deadline = new Date(s.deadline);
