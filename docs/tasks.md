@@ -20,10 +20,13 @@ Reference docs: `docs/masterplan.md`, `docs/implementation-plan.md`,
 - [x] Fixed bottom nav (Home / Plan / Check-in / Guarantee)
 - [x] Safe-area aware; single-column 480px max
 
-### 3. Plan engine — `src/lib/plan.ts`
-- [x] Wendler 5/3/1 + BBB for lifts; rep-based wave for pushups
-- [x] Running pace formulas per spec (`paceTargets()`) incl. edge case
+### 3. Plan engine — `src/lib/plan/`
+- [x] Wendler 5/3/1 + BBB for lifts (`strength.ts`)
+- [x] Calisthenics hybrid for pushups (`calisthenics.ts`): Day A (5/3/1 + FSL) + Day B (adaptive density + 2-min test)
+- [x] Running pace formulas per spec (`run.ts`, `paceTargets()`) incl. edge case
 - [x] Week 4 deload + timed test; cycle progression on wave complete
+- [x] Wendler AMRAP-driven TM progression (`progression.ts`, `wendlerNextTM`)
+- [x] Editable per-set actuals; Day B 2-min test auto-logs as Check-in
 
 ### 4. Screens
 - [x] Setup — pick → values, with auto-saved draft and <4-week deadline note
