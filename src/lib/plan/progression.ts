@@ -28,6 +28,8 @@ export function progressTrainingMax(s: Standard, current: number, amrapValue?: n
  */
 export function wendlerNextTM(s: Standard, currentTM: number, amrapReps?: number): number {
   if (s.type === "run3mi") return currentTM;
+  // Week 3's top set is prescribed as 1+ rep at 95% TM. We only ever call this
+  // with the Week 3 top-set AMRAP, so the minimum prescribed reps is 1.
   const prescribed = 1;
   if (amrapReps == null || amrapReps <= 0) return currentTM;
   if (amrapReps < prescribed) {
