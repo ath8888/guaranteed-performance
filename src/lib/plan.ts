@@ -162,3 +162,40 @@ function runWeek(week: 1 | 2 | 3 | 4, currentPaceSec: number, standardPaceSec: n
     { title: "Easy run", lines: [`20–25 min @ ${fmtTime(easy)}/mi`] },
   ];
 }
+
+/**
+ * Minimum number of 4-week waves needed to reach `s.target` from a given
+ * current value, using the same progression the Plan engine actually
+ * applies (lifts +5/+10, pushups +2, run ~5 sec/mile per wave).
+ * Returns 0 when the target is already met.
+ */
+export function wavesToTarget(s: Standard, currentValue: number): number {
+  const meta = STANDARD_META[s.type];
+  const met = meta.lower ? currentValue <= s.target : currentValue >= s.target;
+  if (met) return 0;
+  switch (s.type) {
+    case "bench":
+    case "ohp":      return Math.ceil((s.target - currentValue) / 5);
+    case "squat":
+    case "deadlift": return Math.ceil((s.target - currentValue) / 10);
+    case "pushups":  return Math.ceil((s.target - currentValue) / 2);
+    case "run3mi": {
+      const curPace = currentValue / 3;
+      const tgtPace = s.target / 3;
+      return Math.max(1, Math.ceil((curPace - tgtPace) / 5));
+    }
+  }
+}
+
+/** Date the standard is estimated to be met. Null if already met. */
+export function etaDate(s: Standard, currentValue: number, from = new Date()): Date | null {
+  const waves = wavesToTarget(s, currentValue);
+  if (waves === 0) return null;
+  const d = new Date(from);
+  d.setDate(d.getDate() + waves * 28);
+  return d;
+}
+
+export function fmtDate(d: Date): string {
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
