@@ -88,6 +88,9 @@ function Checkin() {
             Log
           </button>
         </div>
+        {confirmation && (
+          <p className="mt-3 text-xs uppercase tracking-wider text-primary">{confirmation}</p>
+        )}
       </div>
 
       <h2 className="display mt-8 mb-2 text-base">History</h2>
