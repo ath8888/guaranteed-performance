@@ -1,81 +1,106 @@
-# Editable Plan sets + Wendler AMRAP progression
+
+# Split Plan engines: Strength / Calisthenics / Run
 
 ## Goal
 
-On the Plan tab, every set (warmups/main/BBB) becomes editable for weight and reps. Actuals are saved per set. When the wave advances from Week 4 to a new cycle, the next Training Max is computed from the **Week 3 AMRAP set actuals** using standard Wendler rules.
+Separate the Plan engine by Standard type so each follows a discipline-appropriate method:
 
-## Data model
+- **Strength** (bench, OHP, squat, deadlift): unchanged — Wendler 5/3/1 + Boring But Big.
+- **Calisthenics** (pushups): new 2-day hybrid — Day A (5/3/1 strength anchor + FSL accessory), Day B (adaptive density + test specificity).
+- **Run** (3-mile): unchanged.
 
-Extend `SessionLog` with optional per-set actuals; keep the existing toggle semantics (presence of a log = "complete").
+## Calisthenics hybrid — what the user sees
 
-```ts
-// src/lib/types.ts
-export interface SetActual { weight?: number; reps?: number }  // weight in lb, omit for pushups
-export interface SessionLog {
-  id: string;
-  standardId: string;
-  cycle: number;
-  week: number;
-  sessionIndex: number;
-  completedAt: string;
-  sets?: SetActual[];   // index matches Session.lines order
-}
+Two sessions per week instead of today's main + BBB. Both render with editable weight/reps rows (weight hidden for pushups).
+
+### Day A — 5/3/1 Strength Anchor
+Mirrors today's pushup main session: % of Rep TM treated as prescribed rep counts, last set AMRAP (weeks 1–3 only).
+
+| Week | Sets (% of Rep TM × prescribed reps) |
+|------|---------------------------------------|
+| 1    | 65% × 5, 75% × 5, 85% × 5+           |
+| 2    | 70% × 3, 80% × 3, 90% × 3+           |
+| 3    | 75% × 5, 85% × 3, 95% × 1+           |
+| 4    | 40% × 5, 50% × 5, 60% × 5 (deload, no AMRAP) |
+
+**FSL accessory** (replaces current "Volume 5×N"): 3 sets × `round(0.55 × Rep TM)` reps, relaxed pace. Weeks 1–3 only; week 4 skips FSL.
+
+### Day B — Adaptive Density + Test
+Density volume scales off Rep TM each cycle (the user's "adaptive (coach)" choice). Let `TM` be the current Rep TM.
+
+| Week | Density block                                                         | Then                                       |
+|------|------------------------------------------------------------------------|--------------------------------------------|
+| 1    | 10 sets × `round(0.22 × TM)` reps, 30–45 s rest                        | —                                          |
+| 2    | 8 sets × `round(0.26 × TM)` reps, 30 s rest                            | 1 × 2-min effort @ ~80% pace               |
+| 3    | 6 sets × `round(0.32 × TM)` reps, 30 s rest                            | 1 × full 2-min test (AMRAP, logs Check-in) |
+| 4    | 5 sets × `round(0.20 × TM)` reps, easy                                 | 1 × relaxed 2-min @ ~85% (AMRAP, optional) |
+
+Coefficients chosen so a TM of ~47 reproduces the doc's printed numbers (10, 12, 15, 10) within ±1 rep and scales naturally as TM grows.
+
+### Test-effort → Check-in auto-log
+The 2-minute test sets on Day B weeks 2/3/4 are flagged `kind: "test"`. Saving a Day B session with a value in that set's reps input:
+- writes the SessionLog as today, AND
+- creates a `CheckIn { value: reps, date: today }` for that standard.
+
+This makes "current" and ETA update immediately without a separate Check-in trip. Existing duplicate-checkin behavior unchanged (latest wins).
+
+### Wendler progression (unchanged rule)
+Next-cycle Rep TM still decided by Day A Week 3 AMRAP only via the existing `wendlerNextTM()` — density work doesn't drive TM. If user logged a Week 3 full 2-min test that exceeds current target, the Check-in side handles "Ready now" status.
+
+## Code structure
+
+Today `src/lib/plan.ts` has `liftWeek`, `pushupWeek`, `runWeek` already co-located. Split into per-discipline modules for clarity (per project rule: "each Standard type's logic swappable independently"):
+
+```
+src/lib/plan/
+  index.ts          // re-exports + buildWeek dispatcher, shared helpers
+  shared.ts         // roundLb, fmtTime/parseTime/fmtValue, PlannedSet, Session types, WAVE/REP_SCHEME constants
+  strength.ts       // liftWeek (unchanged Wendler+BBB)
+  calisthenics.ts   // pushupDayA + pushupDayB (new hybrid)
+  run.ts            // runWeek + paceTargets (unchanged)
+  progression.ts    // wendlerNextTM, progressTrainingMax, initTrainingMax, wavesToTarget, etaDate
 ```
 
-The plan engine returns structured set data alongside display strings so the UI can render inputs prefilled with the prescribed numbers.
+`src/lib/plan.ts` becomes a thin re-export shim so existing imports (`@/lib/plan`) keep working — no consumer churn.
+
+### Session type extension
 
 ```ts
-// src/lib/plan.ts
-export interface PlannedSet { weight?: number; reps: number; amrap?: boolean }
+// src/lib/plan/shared.ts
+export interface PlannedSet {
+  weight?: number;
+  reps: number;
+  amrap?: boolean;
+  note?: string;          // e.g. "30–45s rest", "2-min effort @80%"
+}
 export interface Session {
   title: string;
-  lines: string[];        // kept for fallback / run sessions
-  sets?: PlannedSet[];    // present for lifts, pushups, BBB
+  lines: string[];
+  sets?: PlannedSet[];
   amrap?: boolean;
-  kind?: "main" | "bbb";  // so progression can find the AMRAP set
+  kind?: "main" | "bbb" | "fsl" | "density" | "test";
 }
 ```
 
-Run sessions stay text-only (no editable sets) — running progression already uses the timed 3-mile check-in.
+`kind: "test"` is the new signal Plan.tsx uses to fire the Check-in auto-log on save.
 
-## UI changes (`src/routes/plan.tsx`)
+## Plan tab changes (`src/routes/plan.tsx`)
 
-For each session card:
-- Render a small row per `PlannedSet`: `[weight input] lb × [reps input]` (pushups: reps only). Inputs are prefilled with the planned values and the AMRAP set's reps input is highlighted with a "+" hint.
-- Add a "Save" affordance per session (or autosave on blur) that writes the `sets[]` into the SessionLog and marks the session complete. Tapping the check circle still toggles complete without edits (uses planned values as actuals).
-- Editing a saved session updates its `sets[]` in place.
-- Keep the existing "Advance to week N" / "Complete wave" buttons.
+- Render whatever sessions `buildWeek` returns (already does this) — no per-type branching in the route.
+- On Save, if any saved set belongs to a session with `kind === "test"` and has `reps > 0`, also call `checkinService.add({ standardId, value: reps, date: today })`.
+- Add a subtle line under test sessions: "Logs as Check-in on save."
 
-Touch targets stay ≥44px; numeric inputs use `inputMode="numeric"`, no spinners. Clinical styling — no badges.
-
-## Progression logic (Wendler, AMRAP-only)
-
-New helper in `src/lib/plan.ts`:
-
-```ts
-// Standard Wendler decision from the Week 3 top-set AMRAP:
-// reps >= prescribed + 1  → bump TM (+5 upper, +10 lower, +2 pushups)
-// reps == prescribed      → hold TM
-// reps <  prescribed      → reset: TM * 0.9 (rounded)
-export function wendlerNextTM(s: Standard, currentTM: number, amrapReps: number): number
-```
-
-`advanceWave` in `src/lib/db.ts`:
-- When moving from Week 4 → next cycle for lifts/pushups, read the most recent Week 3 SessionLog for that standard, find its `main` session's last set actuals, and pass `amrapReps` to `wendlerNextTM`.
-- If no AMRAP actual was logged, hold the current TM (no change) rather than guessing.
-- Run progression is unchanged (still uses the 3-mile check-in).
-- ETA recomputation continues to fire on wave advance as today.
+No styling changes, no new screens. Touch targets, no badges, clinical tone preserved.
 
 ## Out of scope
 
-- No new screens, no charts, no per-set history view.
-- No changes to Check-in, Guarantee, or Home.
-- Running sessions remain non-editable in this pass.
+- No new screens or charts.
+- Run engine untouched.
+- No changes to lift sessions (warmups/main/BBB stay as today).
+- Density coefficients are fixed constants in this pass; no UI to tune them.
 
 ## Files touched
 
-- `src/lib/types.ts` — add `SetActual`, extend `SessionLog`.
-- `src/lib/plan.ts` — add `PlannedSet`, populate `Session.sets`, add `wendlerNextTM`.
-- `src/lib/db.ts` — extend `sessionService` to save/read `sets[]`; update `advanceWave` to use Week 3 AMRAP actuals.
-- `src/routes/plan.tsx` — editable set rows, save/complete flow.
-- `docs/tasks.md` — mark new tasks and completion.
+- **New:** `src/lib/plan/shared.ts`, `src/lib/plan/strength.ts`, `src/lib/plan/calisthenics.ts`, `src/lib/plan/run.ts`, `src/lib/plan/progression.ts`, `src/lib/plan/index.ts`
+- **Edit:** `src/lib/plan.ts` (reduce to re-export shim), `src/routes/plan.tsx` (test → Check-in auto-log), `src/lib/types.ts` (no schema change expected; verify `Session.kind` union)
+- **Docs:** `.lovable/plan.md`, `docs/tasks.md`
