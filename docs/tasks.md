@@ -47,7 +47,7 @@ Reference docs: `docs/masterplan.md`, `docs/implementation-plan.md`,
 - [x] No service worker (manifest-only, per PWA skill)
 
 ### 7. Pre-test bug fixes (June 18, 2026)
-- [x] BUG 1 — `Standard.deadline` is now the real test date (immutable); calculated ETA stored separately as `etaDeadline`. Displayed on Home (secondary line) and Guarantee.
+- [x] BUG 1 — `Standard.desiredCompletionDate` is the real test date (immutable); calculated ETA stored separately as `estCompletionDate`. Displayed on Home (secondary line) and Guarantee.
 - [x] BUG 2 — Circle checkbox disabled for lift/pushup sessions with sets; "Save & complete" is the only completion path so AMRAP is captured.
 - [x] BUG 3 — Directional validation on Setup (target must be heavier/faster/more reps than baseline) with inline error.
 - [x] ISSUE 4 — Check-in shows "Wave complete. New paces calculated." after auto-advance.
