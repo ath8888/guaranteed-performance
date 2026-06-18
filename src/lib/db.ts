@@ -37,17 +37,37 @@ export const draftService = {
 
 // ---------- Standards ----------
 export const standardService = {
-  async list(): Promise<Standard[]> {
+  /** All standards, including archived. Use for Settings / History. */
+  async listAll(): Promise<Standard[]> {
     return read<Standard[]>(K.standards, []);
   },
+  /** Active standards only. Default for the four main tabs. */
+  async list(): Promise<Standard[]> {
+    const all = await read<Standard[]>(K.standards, []);
+    return all.filter(s => s.status !== "archived");
+  },
   async save(s: Standard) {
-    const all = await this.list();
+    const all = await this.listAll();
     const i = all.findIndex(x => x.id === s.id);
     if (i >= 0) all[i] = s; else all.push(s);
     await write(K.standards, all);
   },
   async remove(id: string) {
-    const all = (await this.list()).filter(s => s.id !== id);
+    const all = (await this.listAll()).filter(s => s.id !== id);
+    await write(K.standards, all);
+  },
+  async archive(id: string) {
+    const all = await this.listAll();
+    const s = all.find(x => x.id === id);
+    if (!s) return;
+    s.status = "archived";
+    await write(K.standards, all);
+  },
+  async unarchive(id: string) {
+    const all = await this.listAll();
+    const s = all.find(x => x.id === id);
+    if (!s) return;
+    s.status = "active";
     await write(K.standards, all);
   },
 };
