@@ -12,10 +12,30 @@ export const Route = createFileRoute("/setup")({
 
 const TYPES: StandardType[] = ["run3mi", "pushups", "bench", "ohp", "squat", "deadlift"];
 
-interface Draft { type: StandardType; baseline: string; target: string; }
+interface Draft { type: StandardType; baseline: string; target: string; testDate: string; }
 interface PersistedDraft {
   picked: Record<StandardType, Draft | null>;
   step: "pick" | "values";
+}
+
+// Parse a yyyy-mm-dd string (from <input type="date">) into a Date at local noon
+// so timezone shifts can't roll it back a day.
+function parseDate(v: string): Date | null {
+  if (!v) return null;
+  const [y, m, d] = v.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d, 12, 0, 0);
+}
+
+function isDirectionValid(t: StandardType, baseline: number, target: number): boolean {
+  return STANDARD_META[t].lower ? target < baseline : target > baseline;
+}
+
+function directionMessage(t: StandardType): string {
+  const meta = STANDARD_META[t];
+  if (meta.lower) return "Target must be faster than baseline.";
+  if (meta.kind === "load") return "Target must be heavier than baseline.";
+  return "Target must be more reps than baseline.";
 }
 
 function Setup() {
@@ -27,19 +47,21 @@ function Setup() {
   const [step, setStep] = useState<"pick" | "values">("pick");
   const [hydrated, setHydrated] = useState(false);
 
-  // Hydrate draft on mount
   useEffect(() => {
     (async () => {
       const d = await draftService.get<PersistedDraft>();
       if (d) {
-        setPicked(d.picked);
+        // Backfill testDate if a legacy draft is missing it.
+        const picked = Object.fromEntries(
+          Object.entries(d.picked).map(([k, v]) => [k, v ? { testDate: "", ...v } : null])
+        ) as Record<StandardType, Draft | null>;
+        setPicked(picked);
         setStep(d.step);
       }
       setHydrated(true);
     })();
   }, []);
 
-  // Debounced auto-save
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!hydrated) return;
@@ -52,11 +74,10 @@ function Setup() {
 
   const selected = TYPES.filter(t => picked[t]);
 
-
   function toggle(t: StandardType) {
-    setPicked(p => ({ ...p, [t]: p[t] ? null : { type: t, baseline: "", target: "" } }));
+    setPicked(p => ({ ...p, [t]: p[t] ? null : { type: t, baseline: "", target: "", testDate: "" } }));
   }
-  function setField(t: StandardType, k: "baseline" | "target", v: string) {
+  function setField(t: StandardType, k: "baseline" | "target" | "testDate", v: string) {
     setPicked(p => ({ ...p, [t]: p[t] ? { ...p[t]!, [k]: v } : null }));
   }
 
@@ -101,7 +122,9 @@ function Setup() {
   const canContinue = selected.length > 0;
   const canSave = selected.every(t => {
     const d = picked[t]!;
-    return parseFor(t, d.baseline) > 0 && parseFor(t, d.target) > 0;
+    const b = parseFor(t, d.baseline);
+    const g = parseFor(t, d.target);
+    return b > 0 && g > 0 && isDirectionValid(t, b, g);
   });
 
   return (
@@ -145,10 +168,13 @@ function Setup() {
             const placeholder = meta.kind === "time" ? "mm:ss" : meta.unit;
             const baselineN = parseFor(t, d.baseline);
             const targetN = parseFor(t, d.target);
-            const ready = baselineN > 0 && targetN > 0;
+            const bothEntered = baselineN > 0 && targetN > 0;
+            const directionOk = bothEntered && isDirectionValid(t, baselineN, targetN);
+            const ready = bothEntered && directionOk;
             const partial = ready ? ({ type: t, baseline: baselineN, target: targetN } as Standard) : null;
             const waves = partial ? wavesToTarget(partial, baselineN) : -1;
             const eta = partial ? etaDate(partial, baselineN) : null;
+            const testDate = parseDate(d.testDate);
             return (
               <div key={t} className="rounded-xl border border-hairline bg-card p-4">
                 <p className="font-medium">{meta.label}</p>
@@ -169,19 +195,44 @@ function Setup() {
                     className="rounded-md border border-hairline bg-background px-3 py-3 text-base"
                   />
                 </div>
+
+                {bothEntered && !directionOk && (
+                  <p className="mt-2 text-xs text-destructive">{directionMessage(t)}</p>
+                )}
+
+                <div className="mt-3">
+                  <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Test date (optional)</label>
+                  <input
+                    type="date"
+                    value={d.testDate}
+                    onChange={e => setField(t, "testDate", e.target.value)}
+                    className="mt-1 w-full rounded-md border border-hairline bg-background px-3 py-3 text-base"
+                  />
+                </div>
+
                 {ready && (
-                  <div className="mt-3 border-t border-hairline pt-3">
-                    {waves === 0 || !eta ? (
-                      <p className="num text-sm font-semibold text-primary">Ready now</p>
-                    ) : (
-                      <>
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Target date</p>
-                        <p className="num mt-1 text-base font-semibold">{fmtDate(eta)}</p>
-                        <p className="num mt-1 text-xs text-ink-soft">
-                          {waves} wave{waves === 1 ? "" : "s"} · ~{waves * 4} weeks
-                        </p>
-                      </>
-                    )}
+                  <div className="mt-3 grid grid-cols-2 gap-3 border-t border-hairline pt-3">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Test date</p>
+                      {testDate ? (
+                        <p className="num mt-1 text-base font-semibold">{fmtDate(testDate)}</p>
+                      ) : (
+                        <p className="mt-1 text-xs text-ink-soft">Not set</p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Est. ready by</p>
+                      {waves === 0 || !eta ? (
+                        <p className="num mt-1 text-sm font-semibold text-primary">Ready now</p>
+                      ) : (
+                        <>
+                          <p className="num mt-1 text-base font-semibold">{fmtDate(eta)}</p>
+                          <p className="num mt-1 text-[11px] text-ink-soft">
+                            {waves} wave{waves === 1 ? "" : "s"} · ~{waves * 4} weeks
+                          </p>
+                        </>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -213,5 +264,4 @@ function Setup() {
   );
 }
 
-// Link is kept imported for future cross-route helpers.
 void Link;
