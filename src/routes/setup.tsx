@@ -71,14 +71,17 @@ function Setup() {
       const baseline = parseFor(t, d.baseline);
       const target = parseFor(t, d.target);
       if (!baseline || !target) continue;
+      if (!isDirectionValid(t, baseline, target)) continue;
       const partial = { type: t, baseline, target } as Standard;
       const eta = etaDate(partial, baseline);
+      const testDate = parseDate(d.testDate);
       const s: Standard = {
         id: crypto.randomUUID(),
         type: t,
         baseline,
         target,
-        deadline: (eta ?? new Date()).toISOString(),
+        deadline: (testDate ?? eta ?? new Date()).toISOString(),
+        etaDeadline: eta ? eta.toISOString() : undefined,
         createdAt: new Date().toISOString(),
         status: "active",
       };
