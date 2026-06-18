@@ -101,8 +101,8 @@ function Setup() {
         type: t,
         baseline,
         target,
-        deadline: (testDate ?? eta ?? new Date()).toISOString(),
-        etaDeadline: eta ? eta.toISOString() : undefined,
+        deadlineDate: (testDate ?? eta ?? new Date()).toISOString(),
+        estCompletionDate: eta ? eta.toISOString() : undefined,
         createdAt: new Date().toISOString(),
         status: "active",
       };
