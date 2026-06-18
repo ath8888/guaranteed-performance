@@ -103,7 +103,7 @@ function Setup() {
 
   return (
     <div className="min-h-screen px-6 pb-32 pt-10">
-      <button onClick={() => step === "values" ? setStep("pick") : history.back()} className="text-xs uppercase tracking-wider text-muted-foreground">
+      <button onClick={() => step === "values" ? setStep("pick") : navigate({ to: "/" })} className="text-xs uppercase tracking-wider text-muted-foreground">
         ← Back
       </button>
       <h1 className="display mt-6 text-3xl leading-tight">
