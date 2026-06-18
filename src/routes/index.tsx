@@ -65,13 +65,15 @@ function Home() {
       <div className="space-y-3">
         {data.map(({ s, latest, training, week, doneCount }) => {
           const meta = STANDARD_META[s.type];
-          const days = daysUntil(s.deadline);
           const current = latest?.value ?? s.baseline;
+          const hit = meta.lower ? current <= s.target : current >= s.target;
           return (
             <Link key={s.id} to="/plan" className="block rounded-xl border border-hairline bg-card p-5 active:bg-muted">
               <div className="flex items-baseline justify-between">
                 <h2 className="display text-lg">{meta.label}</h2>
-                <span className="num text-xs text-muted-foreground">{days}d left</span>
+                <span className="num text-xs text-muted-foreground">
+                  {hit ? <span className="text-primary">Ready</span> : `Target ${fmtDate(new Date(s.deadline))}`}
+                </span>
               </div>
               <div className="mt-4 grid grid-cols-3 gap-2 text-left">
                 <Stat label="Baseline" value={fmtValue(s.type, s.baseline)} />
