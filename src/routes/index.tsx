@@ -72,7 +72,7 @@ function Home() {
               <div className="flex items-baseline justify-between">
                 <h2 className="display text-lg">{meta.label}</h2>
                 <span className="num text-xs text-muted-foreground">
-                  {hit ? <span className="text-primary">Ready</span> : `Test ${fmtDate(new Date(s.deadline))}`}
+                  {hit ? <span className="text-primary">Ready</span> : `Deadline Date ${fmtDate(new Date(s.deadlineDate))}`}
                 </span>
               </div>
               <div className="mt-4 grid grid-cols-3 gap-2 text-left">
@@ -90,9 +90,9 @@ function Home() {
                   </span>
                 </div>
               )}
-              {!hit && s.etaDeadline && (
+              {!hit && s.estCompletionDate && (
                 <p className="num mt-2 text-[11px] text-muted-foreground">
-                  Est. ready by {fmtDate(new Date(s.etaDeadline))}
+                  Est. Completion Date {fmtDate(new Date(s.estCompletionDate))}
                 </p>
               )}
             </Link>

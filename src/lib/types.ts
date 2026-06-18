@@ -14,10 +14,10 @@ export interface Standard {
   type: StandardType;
   baseline: number;       // load lb, reps, or time in seconds
   target: number;
-  /** Test date — fixed external commitment, set once at setup, never overwritten. */
-  deadline: string;       // ISO date
+  /** Fixed external test date — set once at setup, never overwritten. */
+  deadlineDate: string;       // ISO date
   /** Calculated ETA from current progress. Updated as user progresses; informational only. */
-  etaDeadline?: string;   // ISO date
+  estCompletionDate?: string;   // ISO date
   createdAt: string;
   status: "active" | "archived";
 }
