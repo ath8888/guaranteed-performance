@@ -161,15 +161,25 @@ export async function advanceWave(s: Standard, amrapValue?: number) {
     await trainingService.save({ ...t, week: (t.week + 1) as 1 | 2 | 3 | 4 });
     return;
   }
-  const nextTM = progressTrainingMax(s, t.trainingMax, amrapValue);
+  let nextTM = t.trainingMax;
+  if (s.type === "run3mi") {
+    nextTM = progressTrainingMax(s, t.trainingMax, amrapValue);
+  } else {
+    // Find Week 3 main session's AMRAP (last set) actual reps from this cycle.
+    const week3Sessions = buildWeek(s, { ...t, week: 3 });
+    const mainIdx = week3Sessions.findIndex(x => x.kind === "main");
+    if (mainIdx >= 0) {
+      const log = await sessionService.find(s.id, t.cycle, 3, mainIdx);
+      const lastSet = log?.sets?.[log.sets.length - 1];
+      nextTM = wendlerNextTM(s, t.trainingMax, lastSet?.reps);
+    }
+  }
   await trainingService.save({
     standardId: s.id,
     trainingMax: nextTM,
     cycle: t.cycle + 1,
     week: 1,
   });
-  // Recompute target date from the new "from" value: for runs this is the
-  // logged test time; for everything else it's the latest check-in or baseline.
   const newCurrent = s.type === "run3mi" && amrapValue
     ? amrapValue
     : await currentValue(s);
