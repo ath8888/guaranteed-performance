@@ -1,4 +1,4 @@
-import type { Standard, StandardType, TrainingState } from "./types";
+import { STANDARD_META, type Standard, type StandardType, type TrainingState } from "./types";
 
 // 5/3/1 wave percentages
 const WAVE = {
