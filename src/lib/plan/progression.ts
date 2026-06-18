@@ -47,7 +47,15 @@ export function wavesToTarget(s: Standard, currentValue: number): number {
     case "ohp":      return Math.ceil((s.target - currentValue) / 5);
     case "squat":
     case "deadlift": return Math.ceil((s.target - currentValue) / 10);
-    case "pushups":  return Math.ceil((s.target - currentValue) / 2);
+    case "pushups": {
+      // Hybrid (5/3/1 + density) gain model: ~30% of the remaining gap closes
+      // per 4-week cycle, floored at ~10 reps/cycle. Mirrors the doc's
+      // observation that 50→100 typically takes 2–3 cycles (8–12 weeks),
+      // with diminishing returns near the ceiling.
+      const gap = s.target - currentValue;
+      const perWave = Math.max(10, Math.round(gap * 0.30));
+      return Math.ceil(gap / perWave);
+    }
     case "run3mi": {
       const curPace = currentValue / 3;
       const tgtPace = s.target / 3;
