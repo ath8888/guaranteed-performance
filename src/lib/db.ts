@@ -206,7 +206,7 @@ export async function advanceWave(s: Standard, amrapValue?: number) {
   const eta = etaDate(s, newCurrent);
   await standardService.save({
     ...s,
-    // Never overwrite `deadlineDate` — it's the user's real test date.
+    // Never overwrite `desiredCompletionDate` — it's the user's real test date.
     estCompletionDate: eta ? eta.toISOString() : undefined,
   });
 }

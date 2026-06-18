@@ -36,8 +36,8 @@ function Card({ s }: { s: Standard }) {
     queryFn: async () => (await checkinService.latest(s.id)) ?? null,
   });
   const current = latest?.value ?? s.baseline;
-  const deadlineDate = new Date(s.deadlineDate);
-  const past = Date.now() > deadlineDate.getTime();
+  const desiredCompletionDate = new Date(s.desiredCompletionDate);
+  const past = Date.now() > desiredCompletionDate.getTime();
   const hit = meta.lower ? current <= s.target : current >= s.target;
   const eligible = past && !hit;
 
@@ -47,7 +47,7 @@ function Card({ s }: { s: Standard }) {
     <div className="rounded-xl border border-hairline bg-card p-5">
       <h2 className="display text-lg">{meta.label}</h2>
       <p className="num mt-1 text-xs text-muted-foreground">
-        Deadline Date {deadlineDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+        Desired Completion Date {desiredCompletionDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
       </p>
       {s.estCompletionDate && !hit && (
         <p className="num mt-0.5 text-xs text-muted-foreground">
