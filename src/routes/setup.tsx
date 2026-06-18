@@ -101,7 +101,7 @@ function Setup() {
         type: t,
         baseline,
         target,
-        deadlineDate: (testDate ?? eta ?? new Date()).toISOString(),
+        desiredCompletionDate: (testDate ?? eta ?? new Date()).toISOString(),
         estCompletionDate: eta ? eta.toISOString() : undefined,
         createdAt: new Date().toISOString(),
         status: "active",
@@ -201,7 +201,7 @@ function Setup() {
                 )}
 
                 <div className="mt-3">
-                  <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Deadline date (optional)</label>
+                  <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Desired completion date (optional)</label>
                   <input
                     type="date"
                     value={d.testDate}
@@ -213,7 +213,7 @@ function Setup() {
                 {ready && (
                   <div className="mt-3 grid grid-cols-2 gap-3 border-t border-hairline pt-3">
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Deadline Date</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Desired Completion Date</p>
                       {testDate ? (
                         <p className="num mt-1 text-base font-semibold">{fmtDate(testDate)}</p>
                       ) : (

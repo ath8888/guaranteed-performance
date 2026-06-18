@@ -15,7 +15,7 @@ export interface Standard {
   baseline: number;       // load lb, reps, or time in seconds
   target: number;
   /** Fixed external test date — set once at setup, never overwritten. */
-  deadlineDate: string;       // ISO date
+  desiredCompletionDate: string;       // ISO date
   /** Calculated ETA from current progress. Updated as user progresses; informational only. */
   estCompletionDate?: string;   // ISO date
   createdAt: string;
