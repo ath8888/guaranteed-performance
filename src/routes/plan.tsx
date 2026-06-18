@@ -161,7 +161,7 @@ function SessionCard({
           id: crypto.randomUUID(),
           standardId: standard.id,
           value: reps,
-          date: new Date().toISOString().slice(0, 10),
+          date: new Date().toISOString(),
         });
       }
     }
@@ -179,9 +179,10 @@ function SessionCard({
       <div className={`rounded-xl border p-4 ${done ? "border-hairline bg-muted" : "border-hairline bg-card"}`}>
         <div className="flex items-start gap-4">
           <button
-            aria-label={done ? "Mark incomplete" : "Mark complete"}
+            aria-label={done ? "Mark incomplete" : hasSets ? "Log sets to complete" : "Mark complete"}
+            disabled={!done && hasSets}
             onClick={done ? clearComplete : onToggleNoEdits}
-            className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${done ? "border-primary bg-primary text-primary-foreground" : "border-border"}`}
+            className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition ${done ? "border-primary bg-primary text-primary-foreground" : "border-border"} ${!done && hasSets ? "cursor-not-allowed opacity-40" : ""}`}
           >
             {done && <Check />}
           </button>

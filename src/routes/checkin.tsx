@@ -17,6 +17,7 @@ function Checkin() {
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [value, setValue] = useState("");
+  const [confirmation, setConfirmation] = useState<string | null>(null);
 
   if (!standards) return null;
   if (standards.length === 0) {
@@ -35,14 +36,18 @@ function Checkin() {
       value: v,
       date: new Date().toISOString(),
     });
-    // If this is a Week-4 run test, advance the wave automatically using
-    // the logged time as the new currentPaceSec source.
+    let advanced = false;
     if (active.type === "run3mi") {
       const t = await trainingService.get(active.id);
-      if (t && t.week === 4) await advanceWave(active, v);
+      if (t && t.week === 4) {
+        await advanceWave(active, v);
+        advanced = true;
+      }
     }
     setValue("");
+    setConfirmation(advanced ? "Wave complete. New paces calculated." : "Logged.");
     qc.invalidateQueries();
+    setTimeout(() => setConfirmation(null), 4000);
   }
 
   return (
@@ -83,6 +88,9 @@ function Checkin() {
             Log
           </button>
         </div>
+        {confirmation && (
+          <p className="mt-3 text-xs uppercase tracking-wider text-primary">{confirmation}</p>
+        )}
       </div>
 
       <h2 className="display mt-8 mb-2 text-base">History</h2>

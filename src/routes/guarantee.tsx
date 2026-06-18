@@ -47,8 +47,13 @@ function Card({ s }: { s: Standard }) {
     <div className="rounded-xl border border-hairline bg-card p-5">
       <h2 className="display text-lg">{meta.label}</h2>
       <p className="num mt-1 text-xs text-muted-foreground">
-        Target {deadline.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+        Test date {deadline.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
       </p>
+      {s.etaDeadline && !hit && (
+        <p className="num mt-0.5 text-xs text-muted-foreground">
+          Est. ready by {new Date(s.etaDeadline).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+        </p>
+      )}
 
       <div className="mt-5 grid grid-cols-3 gap-2">
         <Stat label="Baseline" value={fmtValue(s.type, s.baseline)} />
