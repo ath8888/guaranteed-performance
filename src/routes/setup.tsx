@@ -24,7 +24,6 @@ function Setup() {
   const [picked, setPicked] = useState<Record<StandardType, Draft | null>>(
     () => Object.fromEntries(TYPES.map(t => [t, null])) as Record<StandardType, Draft | null>
   );
-  const [deadline, setDeadline] = useState(defaultDeadline());
   const [step, setStep] = useState<"pick" | "values">("pick");
   const [hydrated, setHydrated] = useState(false);
 
@@ -34,7 +33,6 @@ function Setup() {
       const d = await draftService.get<PersistedDraft>();
       if (d) {
         setPicked(d.picked);
-        setDeadline(d.deadline);
         setStep(d.step);
       }
       setHydrated(true);
@@ -47,14 +45,13 @@ function Setup() {
     if (!hydrated) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      draftService.save<PersistedDraft>({ picked, deadline, step });
+      draftService.save<PersistedDraft>({ picked, step });
     }, 200);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
-  }, [picked, deadline, step, hydrated]);
+  }, [picked, step, hydrated]);
 
   const selected = TYPES.filter(t => picked[t]);
-  const weeks = weeksUntil(deadline);
-  const tightDeadline = weeks < 4;
+
 
   function toggle(t: StandardType) {
     setPicked(p => ({ ...p, [t]: p[t] ? null : { type: t, baseline: "", target: "" } }));
