@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { standardService, trainingService, draftService } from "@/lib/db";
 import { STANDARD_META, type StandardType, type Standard } from "@/lib/types";
-import { initTrainingMax, parseTime } from "@/lib/plan";
+import { initTrainingMax, parseTime, etaDate, fmtDate, wavesToTarget } from "@/lib/plan";
 
 export const Route = createFileRoute("/setup")({
   head: () => ({ meta: [{ title: "Set your standard" }] }),
@@ -15,19 +15,7 @@ const TYPES: StandardType[] = ["run3mi", "pushups", "bench", "ohp", "squat", "de
 interface Draft { type: StandardType; baseline: string; target: string; }
 interface PersistedDraft {
   picked: Record<StandardType, Draft | null>;
-  deadline: string;
   step: "pick" | "values";
-}
-
-function defaultDeadline(): string {
-  const d = new Date();
-  d.setDate(d.getDate() + 12 * 7);
-  return d.toISOString().slice(0, 10);
-}
-
-function weeksUntil(iso: string): number {
-  const ms = new Date(iso).getTime() - Date.now();
-  return ms / (7 * 86_400_000);
 }
 
 function Setup() {

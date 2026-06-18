@@ -145,6 +145,16 @@ export async function advanceWave(s: Standard, amrapValue?: number) {
     cycle: t.cycle + 1,
     week: 1,
   });
+  // Recompute target date from the new "from" value: for runs this is the
+  // logged test time; for everything else it's the latest check-in or baseline.
+  const newCurrent = s.type === "run3mi" && amrapValue
+    ? amrapValue
+    : await currentValue(s);
+  const eta = etaDate(s, newCurrent);
+  await standardService.save({
+    ...s,
+    deadline: (eta ?? new Date()).toISOString(),
+  });
 }
 
 export async function resetAll() {
