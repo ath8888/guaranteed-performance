@@ -47,7 +47,7 @@ function Card({ s }: { s: Standard }) {
     <div className="rounded-xl border border-hairline bg-card p-5">
       <h2 className="display text-lg">{meta.label}</h2>
       <p className="num mt-1 text-xs text-muted-foreground">
-        By {deadline.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+        Target {deadline.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
       </p>
 
       <div className="mt-5 grid grid-cols-3 gap-2">

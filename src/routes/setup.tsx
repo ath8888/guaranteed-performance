@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { standardService, trainingService, draftService } from "@/lib/db";
 import { STANDARD_META, type StandardType, type Standard } from "@/lib/types";
-import { initTrainingMax, parseTime } from "@/lib/plan";
+import { initTrainingMax, parseTime, etaDate, fmtDate, wavesToTarget } from "@/lib/plan";
 
 export const Route = createFileRoute("/setup")({
   head: () => ({ meta: [{ title: "Set your standard" }] }),
@@ -15,19 +15,7 @@ const TYPES: StandardType[] = ["run3mi", "pushups", "bench", "ohp", "squat", "de
 interface Draft { type: StandardType; baseline: string; target: string; }
 interface PersistedDraft {
   picked: Record<StandardType, Draft | null>;
-  deadline: string;
   step: "pick" | "values";
-}
-
-function defaultDeadline(): string {
-  const d = new Date();
-  d.setDate(d.getDate() + 12 * 7);
-  return d.toISOString().slice(0, 10);
-}
-
-function weeksUntil(iso: string): number {
-  const ms = new Date(iso).getTime() - Date.now();
-  return ms / (7 * 86_400_000);
 }
 
 function Setup() {
@@ -36,7 +24,6 @@ function Setup() {
   const [picked, setPicked] = useState<Record<StandardType, Draft | null>>(
     () => Object.fromEntries(TYPES.map(t => [t, null])) as Record<StandardType, Draft | null>
   );
-  const [deadline, setDeadline] = useState(defaultDeadline());
   const [step, setStep] = useState<"pick" | "values">("pick");
   const [hydrated, setHydrated] = useState(false);
 
@@ -46,7 +33,6 @@ function Setup() {
       const d = await draftService.get<PersistedDraft>();
       if (d) {
         setPicked(d.picked);
-        setDeadline(d.deadline);
         setStep(d.step);
       }
       setHydrated(true);
@@ -59,14 +45,13 @@ function Setup() {
     if (!hydrated) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      draftService.save<PersistedDraft>({ picked, deadline, step });
+      draftService.save<PersistedDraft>({ picked, step });
     }, 200);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
-  }, [picked, deadline, step, hydrated]);
+  }, [picked, step, hydrated]);
 
   const selected = TYPES.filter(t => picked[t]);
-  const weeks = weeksUntil(deadline);
-  const tightDeadline = weeks < 4;
+
 
   function toggle(t: StandardType) {
     setPicked(p => ({ ...p, [t]: p[t] ? null : { type: t, baseline: "", target: "" } }));
@@ -86,12 +71,14 @@ function Setup() {
       const baseline = parseFor(t, d.baseline);
       const target = parseFor(t, d.target);
       if (!baseline || !target) continue;
+      const partial = { type: t, baseline, target } as Standard;
+      const eta = etaDate(partial, baseline);
       const s: Standard = {
         id: crypto.randomUUID(),
         type: t,
         baseline,
         target,
-        deadline: new Date(deadline).toISOString(),
+        deadline: (eta ?? new Date()).toISOString(),
         createdAt: new Date().toISOString(),
         status: "active",
       };
@@ -149,23 +136,16 @@ function Setup() {
 
       {step === "values" && (
         <div className="mt-8 space-y-5">
-          <Field label="Deadline">
-            <input
-              type="date"
-              value={deadline}
-              onChange={e => setDeadline(e.target.value)}
-              className="w-full rounded-md border border-hairline bg-card px-4 py-3 text-base"
-            />
-            {tightDeadline && (
-              <p className="mt-2 text-xs text-ink-soft">
-                Less than 4 weeks. That may not be enough time to be certain.
-              </p>
-            )}
-          </Field>
           {selected.map(t => {
             const d = picked[t]!;
             const meta = STANDARD_META[t];
             const placeholder = meta.kind === "time" ? "mm:ss" : meta.unit;
+            const baselineN = parseFor(t, d.baseline);
+            const targetN = parseFor(t, d.target);
+            const ready = baselineN > 0 && targetN > 0;
+            const partial = ready ? ({ type: t, baseline: baselineN, target: targetN } as Standard) : null;
+            const waves = partial ? wavesToTarget(partial, baselineN) : -1;
+            const eta = partial ? etaDate(partial, baselineN) : null;
             return (
               <div key={t} className="rounded-xl border border-hairline bg-card p-4">
                 <p className="font-medium">{meta.label}</p>
@@ -186,6 +166,21 @@ function Setup() {
                     className="rounded-md border border-hairline bg-background px-3 py-3 text-base"
                   />
                 </div>
+                {ready && (
+                  <div className="mt-3 border-t border-hairline pt-3">
+                    {waves === 0 || !eta ? (
+                      <p className="num text-sm font-semibold text-primary">Ready now</p>
+                    ) : (
+                      <>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Target date</p>
+                        <p className="num mt-1 text-base font-semibold">{fmtDate(eta)}</p>
+                        <p className="num mt-1 text-xs text-ink-soft">
+                          {waves} wave{waves === 1 ? "" : "s"} · ~{waves * 4} weeks
+                        </p>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -215,14 +210,5 @@ function Setup() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <p className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">{label}</p>
-      {children}
-    </label>
-  );
-}
-
-// Silence unused-import warning during refactors; Link is reserved for future cross-links.
+// Link is kept imported for future cross-route helpers.
 void Link;
