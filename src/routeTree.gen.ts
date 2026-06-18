@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as PlanRouteImport } from './routes/plan'
+import { Route as GuaranteeRouteImport } from './routes/guarantee'
 import { Route as CheckinRouteImport } from './routes/checkin'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -22,6 +23,11 @@ const SetupRoute = SetupRouteImport.update({
 const PlanRoute = PlanRouteImport.update({
   id: '/plan',
   path: '/plan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuaranteeRoute = GuaranteeRouteImport.update({
+  id: '/guarantee',
+  path: '/guarantee',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckinRoute = CheckinRouteImport.update({
@@ -38,12 +44,14 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/checkin': typeof CheckinRoute
+  '/guarantee': typeof GuaranteeRoute
   '/plan': typeof PlanRoute
   '/setup': typeof SetupRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/checkin': typeof CheckinRoute
+  '/guarantee': typeof GuaranteeRoute
   '/plan': typeof PlanRoute
   '/setup': typeof SetupRoute
 }
@@ -51,20 +59,22 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/checkin': typeof CheckinRoute
+  '/guarantee': typeof GuaranteeRoute
   '/plan': typeof PlanRoute
   '/setup': typeof SetupRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/checkin' | '/plan' | '/setup'
+  fullPaths: '/' | '/checkin' | '/guarantee' | '/plan' | '/setup'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/checkin' | '/plan' | '/setup'
-  id: '__root__' | '/' | '/checkin' | '/plan' | '/setup'
+  to: '/' | '/checkin' | '/guarantee' | '/plan' | '/setup'
+  id: '__root__' | '/' | '/checkin' | '/guarantee' | '/plan' | '/setup'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CheckinRoute: typeof CheckinRoute
+  GuaranteeRoute: typeof GuaranteeRoute
   PlanRoute: typeof PlanRoute
   SetupRoute: typeof SetupRoute
 }
@@ -83,6 +93,13 @@ declare module '@tanstack/react-router' {
       path: '/plan'
       fullPath: '/plan'
       preLoaderRoute: typeof PlanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guarantee': {
+      id: '/guarantee'
+      path: '/guarantee'
+      fullPath: '/guarantee'
+      preLoaderRoute: typeof GuaranteeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/checkin': {
@@ -105,6 +122,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CheckinRoute: CheckinRoute,
+  GuaranteeRoute: GuaranteeRoute,
   PlanRoute: PlanRoute,
   SetupRoute: SetupRoute,
 }

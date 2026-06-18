@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { standardService, checkinService } from "@/lib/db";
-import { STANDARD_META, type Standard } from "@/lib/types";
+import { STANDARD_META } from "@/lib/types";
 import { fmtValue, parseTime } from "@/lib/plan";
 
 export const Route = createFileRoute("/checkin")({
