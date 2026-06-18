@@ -7,7 +7,7 @@ import { WAVE, REP_SCHEME, type PlannedSet, type Session } from "./shared";
  *   Day B — Adaptive density (+ 2-min test weeks 2–4)
  */
 export function pushupWeek(week: 1 | 2 | 3 | 4, repTM: number): Session[] {
-  return [dayA(week, repTM), ...dayB(week, repTM)];
+  return [...dayA_(week, repTM), ...dayB(week, repTM)];
 }
 
 function dayA(week: 1 | 2 | 3 | 4, repTM: number): Session[] | Session {
