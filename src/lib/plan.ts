@@ -32,10 +32,14 @@ export function fmtValue(type: StandardType, v: number): string {
   return `${v} lb`;
 }
 
+export interface PlannedSet { weight?: number; reps: number; amrap?: boolean }
+
 export interface Session {
   title: string;
   lines: string[];
+  sets?: PlannedSet[];
   amrap?: boolean;
+  kind?: "main" | "bbb";
 }
 
 export function initTrainingMax(s: Standard): number {
