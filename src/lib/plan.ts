@@ -32,10 +32,14 @@ export function fmtValue(type: StandardType, v: number): string {
   return `${v} lb`;
 }
 
+export interface PlannedSet { weight?: number; reps: number; amrap?: boolean }
+
 export interface Session {
   title: string;
   lines: string[];
+  sets?: PlannedSet[];
   amrap?: boolean;
+  kind?: "main" | "bbb";
 }
 
 export function initTrainingMax(s: Standard): number {
@@ -58,6 +62,26 @@ export function progressTrainingMax(s: Standard, current: number, amrapValue?: n
   return current + 10; // squat / deadlift
 }
 
+/**
+ * Standard Wendler decision from the Week 3 top-set AMRAP:
+ *   reps >= prescribed + 1 → bump TM (+5 upper, +10 lower, +2 pushups)
+ *   reps == prescribed      → hold TM
+ *   reps <  prescribed      → reset: TM * 0.9 (rounded)
+ * Returns currentTM unchanged for run3mi (handled elsewhere) or missing data.
+ */
+export function wendlerNextTM(s: Standard, currentTM: number, amrapReps?: number): number {
+  if (s.type === "run3mi") return currentTM;
+  const prescribed = 1; // Week 3 top set prescribes 1 rep (5/3/1)
+  if (amrapReps == null || amrapReps <= 0) return currentTM;
+  if (amrapReps < prescribed) {
+    // reset
+    if (s.type === "pushups") return Math.max(1, Math.round(currentTM * 0.9));
+    return roundLb(currentTM * 0.9);
+  }
+  if (amrapReps === prescribed) return currentTM;
+  return progressTrainingMax(s, currentTM);
+}
+
 export function buildWeek(s: Standard, t: TrainingState): Session[] {
   const week = t.week;
   if (s.type === "run3mi") {
@@ -71,20 +95,25 @@ export function buildWeek(s: Standard, t: TrainingState): Session[] {
 function liftWeek(_type: StandardType, week: 1 | 2 | 3 | 4, tm: number): Session[] {
   const pcts = WAVE[week];
   const reps = REP_SCHEME[week];
+  const sets: PlannedSet[] = pcts.map((p, i) => {
+    const last = i === pcts.length - 1 && week !== 4;
+    return { weight: roundLb(tm * p), reps: reps[i], amrap: last };
+  });
   const main: Session = {
     title: week === 4 ? "Main lift — Deload" : "Main lift",
-    lines: pcts.map((p, i) => {
-      const lbs = roundLb(tm * p);
-      const r = reps[i];
-      const last = i === pcts.length - 1 && week !== 4;
-      return `${lbs} lb × ${r}${last ? "+" : ""}`;
-    }),
+    lines: sets.map(s => `${s.weight} lb × ${s.reps}${s.amrap ? "+" : ""}`),
+    sets,
     amrap: week !== 4,
+    kind: "main",
   };
   if (week === 4) return [main];
+  const bbbWeight = roundLb(tm * 0.5);
+  const bbbSets: PlannedSet[] = Array.from({ length: 5 }, () => ({ weight: bbbWeight, reps: 10 }));
   const bbb: Session = {
     title: "Boring But Big",
-    lines: [`5 × 10 @ ${roundLb(tm * 0.5)} lb`],
+    lines: [`5 × 10 @ ${bbbWeight} lb`],
+    sets: bbbSets,
+    kind: "bbb",
   };
   return [main, bbb];
 }
@@ -92,19 +121,28 @@ function liftWeek(_type: StandardType, week: 1 | 2 | 3 | 4, tm: number): Session
 function pushupWeek(week: 1 | 2 | 3 | 4, repTM: number): Session[] {
   const pcts = WAVE[week];
   const reps = REP_SCHEME[week];
+  const sets: PlannedSet[] = pcts.map((p, i) => {
+    const last = i === pcts.length - 1 && week !== 4;
+    return { reps: Math.max(1, Math.round(repTM * p)), amrap: last };
+  });
   const main: Session = {
     title: week === 4 ? "Main set — Deload" : "Main set",
-    lines: pcts.map((p, i) => {
-      const r = Math.max(1, Math.round(repTM * p));
-      const last = i === pcts.length - 1 && week !== 4;
-      return `${r} reps${week !== 4 ? ` (target ${reps[i]}${last ? "+" : ""})` : ""}`;
+    lines: sets.map((s, i) => {
+      const target = reps[i];
+      return `${s.reps} reps${week !== 4 ? ` (target ${target}${s.amrap ? "+" : ""})` : ""}`;
     }),
+    sets,
     amrap: week !== 4,
+    kind: "main",
   };
   if (week === 4) return [main];
+  const volReps = Math.max(1, Math.round(repTM * 0.5));
+  const bbbSets: PlannedSet[] = Array.from({ length: 5 }, () => ({ reps: volReps }));
   const bbb: Session = {
     title: "Volume",
-    lines: [`5 × ${Math.max(1, Math.round(repTM * 0.5))} reps`],
+    lines: [`5 × ${volReps} reps`],
+    sets: bbbSets,
+    kind: "bbb",
   };
   return [main, bbb];
 }

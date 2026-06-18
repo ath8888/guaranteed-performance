@@ -1,6 +1,6 @@
 import { get, set, createStore } from "idb-keyval";
-import type { Standard, TrainingState, CheckIn, SessionLog } from "./types";
-import { progressTrainingMax, etaDate } from "./plan";
+import type { Standard, TrainingState, CheckIn, SessionLog, SetActual } from "./types";
+import { progressTrainingMax, wendlerNextTM, etaDate, buildWeek } from "./plan";
 
 const store = typeof indexedDB !== "undefined" ? createStore("gs-db", "kv") : undefined;
 
@@ -113,11 +113,34 @@ export const sessionService = {
       return true;
     }
   },
+  async saveActuals(
+    log: Omit<SessionLog, "id" | "completedAt" | "sets">,
+    sets: SetActual[]
+  ) {
+    const all = await read<SessionLog[]>(K.sessions, []);
+    const match = all.find(s =>
+      s.standardId === log.standardId &&
+      s.cycle === log.cycle &&
+      s.week === log.week &&
+      s.sessionIndex === log.sessionIndex
+    );
+    if (match) {
+      match.sets = sets;
+      match.completedAt = new Date().toISOString();
+    } else {
+      all.push({ ...log, sets, id: crypto.randomUUID(), completedAt: new Date().toISOString() });
+    }
+    await write(K.sessions, all);
+  },
+  async find(standardId: string, cycle: number, week: number, sessionIndex: number) {
+    const all = await this.list(standardId);
+    return all.find(s => s.cycle === cycle && s.week === week && s.sessionIndex === sessionIndex);
+  },
   async isDone(standardId: string, cycle: number, week: number, sessionIndex: number) {
     const all = await this.list(standardId);
     return all.some(s => s.cycle === cycle && s.week === week && s.sessionIndex === sessionIndex);
   },
-};
+}; 
 
 // ---------- Derived ----------
 /** Current value = latest check-in if any, else baseline (locked at setup). */
@@ -138,15 +161,25 @@ export async function advanceWave(s: Standard, amrapValue?: number) {
     await trainingService.save({ ...t, week: (t.week + 1) as 1 | 2 | 3 | 4 });
     return;
   }
-  const nextTM = progressTrainingMax(s, t.trainingMax, amrapValue);
+  let nextTM = t.trainingMax;
+  if (s.type === "run3mi") {
+    nextTM = progressTrainingMax(s, t.trainingMax, amrapValue);
+  } else {
+    // Find Week 3 main session's AMRAP (last set) actual reps from this cycle.
+    const week3Sessions = buildWeek(s, { ...t, week: 3 });
+    const mainIdx = week3Sessions.findIndex(x => x.kind === "main");
+    if (mainIdx >= 0) {
+      const log = await sessionService.find(s.id, t.cycle, 3, mainIdx);
+      const lastSet = log?.sets?.[log.sets.length - 1];
+      nextTM = wendlerNextTM(s, t.trainingMax, lastSet?.reps);
+    }
+  }
   await trainingService.save({
     standardId: s.id,
     trainingMax: nextTM,
     cycle: t.cycle + 1,
     week: 1,
   });
-  // Recompute target date from the new "from" value: for runs this is the
-  // logged test time; for everything else it's the latest check-in or baseline.
   const newCurrent = s.type === "run3mi" && amrapValue
     ? amrapValue
     : await currentValue(s);
