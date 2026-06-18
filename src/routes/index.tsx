@@ -41,7 +41,7 @@ function Home() {
       <div className="px-6 pt-20 text-center">
         <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Guaranteed Standards</p>
         <h1 className="display mt-4 text-[44px] leading-[0.95]">Hit the standard.<br/>Nothing extra.</h1>
-        <p className="mt-5 text-sm text-ink-soft">Tell us the test you must pass. We give you the minimum training to be certain.</p>
+        <p className="mt-5 text-sm text-ink-soft">No standard set yet. Choose the test you need to pass.</p>
         <Link to="/setup" className="mt-10 inline-block w-full rounded-md bg-primary px-5 py-4 text-sm font-semibold text-primary-foreground">
           Set your standard
         </Link>
@@ -56,7 +56,15 @@ function Home() {
           <p className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">Standards</p>
           <h1 className="display text-2xl">Home</h1>
         </div>
-        <Link to="/setup" className="text-xs font-medium text-primary">+ Add</Link>
+        <div className="flex items-center gap-4">
+          <Link to="/setup" className="text-xs font-medium text-primary">+ Add</Link>
+          <Link to="/settings" aria-label="Settings" className="text-muted-foreground">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </Link>
+        </div>
       </header>
 
       <div className="space-y-3">

@@ -33,7 +33,7 @@ function Card({ s }: { s: Standard }) {
   const meta = STANDARD_META[s.type];
   const { data: latest } = useQuery({
     queryKey: ["latest", s.id],
-    queryFn: () => checkinService.latest(s.id),
+    queryFn: async () => (await checkinService.latest(s.id)) ?? null,
   });
   const current = latest?.value ?? s.baseline;
   const deadline = new Date(s.deadline);
@@ -72,7 +72,7 @@ function Card({ s }: { s: Standard }) {
           onClick={() => setSubmitted(true)}
           className="mt-6 w-full rounded-md border border-hairline py-3 text-xs font-medium uppercase tracking-wider text-ink-soft disabled:opacity-40"
         >
-          {past ? (hit ? "Standard met" : "Request refund") : "Available after deadline"}
+          {past ? (hit ? "Standard met" : "Request refund") : "Refund requests open after your test date if the standard wasn't met."}
         </button>
       )}
     </div>

@@ -20,7 +20,7 @@ function Checkin() {
 
   if (!standards) return null;
   if (standards.length === 0) {
-    return <div className="px-6 pt-24 text-center text-sm text-muted-foreground">No standard set yet.</div>;
+    return <div className="px-6 pt-24 text-center text-sm text-muted-foreground">No standard set yet. Choose the test you need to pass.</div>;
   }
 
   const active = standards.find(s => s.id === activeId) ?? standards[0];
@@ -98,7 +98,7 @@ function Checkin() {
             </li>
           ))}
         {(history ?? []).filter(c => c.standardId === active.id).length === 0 && (
-          <li className="px-4 py-6 text-center text-sm text-muted-foreground">No check-ins yet.</li>
+          <li className="px-4 py-6 text-center text-sm text-muted-foreground">No check-ins yet. Log your first attempt to see where you stand.</li>
         )}
       </ul>
     </div>
