@@ -53,7 +53,7 @@ function Setup() {
       if (d) {
         // Backfill testDate if a legacy draft is missing it.
         const picked = Object.fromEntries(
-          Object.entries(d.picked).map(([k, v]) => [k, v ? { testDate: "", ...v } : null])
+          Object.entries(d.picked).map(([k, v]) => [k, v ? { ...v, testDate: v.testDate ?? "" } : null])
         ) as Record<StandardType, Draft | null>;
         setPicked(picked);
         setStep(d.step);
