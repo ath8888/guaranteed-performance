@@ -1,5 +1,6 @@
 import { get, set, createStore } from "idb-keyval";
 import type { Standard, TrainingState, CheckIn, SessionLog } from "./types";
+import { progressTrainingMax } from "./plan";
 
 const store = typeof indexedDB !== "undefined" ? createStore("gs-db", "kv") : undefined;
 
@@ -103,6 +104,34 @@ export const sessionService = {
     return all.some(s => s.cycle === cycle && s.week === week && s.sessionIndex === sessionIndex);
   },
 };
+
+// ---------- Derived ----------
+/** Current value = latest check-in if any, else baseline (locked at setup). */
+export async function currentValue(s: Standard): Promise<number> {
+  const latest = await checkinService.latest(s.id);
+  return latest?.value ?? s.baseline;
+}
+
+/**
+ * Advance to the next wave week. After Week 4, increment cycle and bump
+ * training max per `progressTrainingMax`. For runs, pass the latest 3-mile
+ * test time (seconds) as `amrapValue` so the new pace can be derived.
+ */
+export async function advanceWave(s: Standard, amrapValue?: number) {
+  const t = await trainingService.get(s.id);
+  if (!t) return;
+  if (t.week < 4) {
+    await trainingService.save({ ...t, week: (t.week + 1) as 1 | 2 | 3 | 4 });
+    return;
+  }
+  const nextTM = progressTrainingMax(s, t.trainingMax, amrapValue);
+  await trainingService.save({
+    standardId: s.id,
+    trainingMax: nextTM,
+    cycle: t.cycle + 1,
+    week: 1,
+  });
+}
 
 export async function resetAll() {
   await write(K.standards, []);
