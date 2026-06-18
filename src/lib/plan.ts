@@ -101,19 +101,28 @@ function liftWeek(_type: StandardType, week: 1 | 2 | 3 | 4, tm: number): Session
 function pushupWeek(week: 1 | 2 | 3 | 4, repTM: number): Session[] {
   const pcts = WAVE[week];
   const reps = REP_SCHEME[week];
+  const sets: PlannedSet[] = pcts.map((p, i) => {
+    const last = i === pcts.length - 1 && week !== 4;
+    return { reps: Math.max(1, Math.round(repTM * p)), amrap: last };
+  });
   const main: Session = {
     title: week === 4 ? "Main set — Deload" : "Main set",
-    lines: pcts.map((p, i) => {
-      const r = Math.max(1, Math.round(repTM * p));
-      const last = i === pcts.length - 1 && week !== 4;
-      return `${r} reps${week !== 4 ? ` (target ${reps[i]}${last ? "+" : ""})` : ""}`;
+    lines: sets.map((s, i) => {
+      const target = reps[i];
+      return `${s.reps} reps${week !== 4 ? ` (target ${target}${s.amrap ? "+" : ""})` : ""}`;
     }),
+    sets,
     amrap: week !== 4,
+    kind: "main",
   };
   if (week === 4) return [main];
+  const volReps = Math.max(1, Math.round(repTM * 0.5));
+  const bbbSets: PlannedSet[] = Array.from({ length: 5 }, () => ({ reps: volReps }));
   const bbb: Session = {
     title: "Volume",
-    lines: [`5 × ${Math.max(1, Math.round(repTM * 0.5))} reps`],
+    lines: [`5 × ${volReps} reps`],
+    sets: bbbSets,
+    kind: "bbb",
   };
   return [main, bbb];
 }
