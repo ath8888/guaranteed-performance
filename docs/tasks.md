@@ -54,6 +54,7 @@ Reference docs: `docs/masterplan.md`, `docs/implementation-plan.md`,
 - [x] ISSUE 5 — All check-in dates standardized to full ISO timestamps.
 - [x] Minor — `prefers-reduced-motion` global rule added; `package.json` name renamed to `guaranteed-standards`; clarifying comment on `wendlerNextTM`.
 - [x] Setup now accepts an optional Test date input.
+- [x] Settings — Archive a Standard (hides it from all four tabs; data preserved for future History tab).
 
 ---
 
