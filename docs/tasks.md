@@ -61,6 +61,8 @@ What to watch for during the week:
 - [ ] Note any copy that feels off-tone (hype, apology, exclamation points)
 - [ ] Confirm app still works after closing/reopening (IndexedDB persistence)
 - [ ] Try **Settings → Reset all data**; confirm it returns to the empty Home state
+- [ ] On Plan: edit weight/reps per set, tap "Save & complete"; reopen, verify values persisted
+- [ ] On Week 3 main lift, log AMRAP reps; after completing Week 4, verify next cycle's TM follows Wendler (≥prescribed+1 → bump, ==prescribed → hold, < → 0.9× reset)
 
 ---
 
