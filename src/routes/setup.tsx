@@ -1,7 +1,7 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { standardService, trainingService } from "@/lib/db";
+import { standardService, trainingService, draftService } from "@/lib/db";
 import { STANDARD_META, type StandardType, type Standard } from "@/lib/types";
 import { initTrainingMax, parseTime } from "@/lib/plan";
 
@@ -13,11 +13,21 @@ export const Route = createFileRoute("/setup")({
 const TYPES: StandardType[] = ["run3mi", "pushups", "bench", "ohp", "squat", "deadlift"];
 
 interface Draft { type: StandardType; baseline: string; target: string; }
+interface PersistedDraft {
+  picked: Record<StandardType, Draft | null>;
+  deadline: string;
+  step: "pick" | "values";
+}
 
 function defaultDeadline(): string {
   const d = new Date();
   d.setDate(d.getDate() + 12 * 7);
   return d.toISOString().slice(0, 10);
+}
+
+function weeksUntil(iso: string): number {
+  const ms = new Date(iso).getTime() - Date.now();
+  return ms / (7 * 86_400_000);
 }
 
 function Setup() {
@@ -28,8 +38,35 @@ function Setup() {
   );
   const [deadline, setDeadline] = useState(defaultDeadline());
   const [step, setStep] = useState<"pick" | "values">("pick");
+  const [hydrated, setHydrated] = useState(false);
+
+  // Hydrate draft on mount
+  useEffect(() => {
+    (async () => {
+      const d = await draftService.get<PersistedDraft>();
+      if (d) {
+        setPicked(d.picked);
+        setDeadline(d.deadline);
+        setStep(d.step);
+      }
+      setHydrated(true);
+    })();
+  }, []);
+
+  // Debounced auto-save
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!hydrated) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      draftService.save<PersistedDraft>({ picked, deadline, step });
+    }, 200);
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+  }, [picked, deadline, step, hydrated]);
 
   const selected = TYPES.filter(t => picked[t]);
+  const weeks = weeksUntil(deadline);
+  const tightDeadline = weeks < 4;
 
   function toggle(t: StandardType) {
     setPicked(p => ({ ...p, [t]: p[t] ? null : { type: t, baseline: "", target: "" } }));
@@ -66,6 +103,7 @@ function Setup() {
         week: 1,
       });
     }
+    await draftService.clear();
     await qc.invalidateQueries();
     navigate({ to: "/" });
   }
@@ -118,6 +156,11 @@ function Setup() {
               onChange={e => setDeadline(e.target.value)}
               className="w-full rounded-md border border-hairline bg-card px-4 py-3 text-base"
             />
+            {tightDeadline && (
+              <p className="mt-2 text-xs text-ink-soft">
+                Less than 4 weeks. That may not be enough time to be certain.
+              </p>
+            )}
           </Field>
           {selected.map(t => {
             const d = picked[t]!;
@@ -180,3 +223,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </label>
   );
 }
+
+// Silence unused-import warning during refactors; Link is reserved for future cross-links.
+void Link;

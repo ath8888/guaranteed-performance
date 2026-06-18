@@ -19,6 +19,20 @@ const K = {
   training: "training",
   checkins: "checkins",
   sessions: "sessions",
+  draft: "setup-draft",
+};
+
+// ---------- Setup draft ----------
+export const draftService = {
+  async get<T>(): Promise<T | undefined> {
+    return read<T | undefined>(K.draft, undefined);
+  },
+  async save<T>(value: T) {
+    await write(K.draft, value);
+  },
+  async clear() {
+    await write(K.draft, undefined);
+  },
 };
 
 // ---------- Standards ----------
