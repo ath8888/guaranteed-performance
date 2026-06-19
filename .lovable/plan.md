@@ -1,22 +1,45 @@
-# Get the app onto your phone as a PWA
+## Goal
 
-The app already has a manifest, icons, and Apple touch tags wired up in `src/routes/__root.tsx` and `public/manifest.webmanifest`. No code changes are needed for installability — it just needs to be published so your phone can load it from a real HTTPS URL (preview URLs work too, but published is the right surface for an installed app).
+Confirm the registry refactor + pull-ups standard from the recent GitHub commits work end-to-end, record them in the task tracker, and clean up the leftover compatibility shim.
 
 ## Steps
 
-1. **Publish the app** via `preview_ui--publish`. This deploys the current build to `https://<slug>.lovable.app`.
-   - Preflight: confirm title ("Guaranteed Standards") and meta description ("Hit the standard. Nothing extra.") in `__root.tsx` are good as-is. No edits needed.
-2. **Share the published URL with you** so you can open it on your phone.
-3. **Install on home screen:**
-   - **iPhone (Safari):** open URL → Share → "Add to Home Screen" → Add. Launch from the new icon → runs standalone, no Safari chrome.
-   - **Android (Chrome):** open URL → three-dot menu → "Install app" (or "Add to Home screen") → Install. Launches standalone from the icon.
-4. **Test the week-long flow** per the checklist in `docs/tasks.md` (Setup → daily Plan → Check-ins → Wave advance → Persistence across app close/reopen).
+### 1. Manual smoke test (Playwright, headless)
 
-## Notes
+Drive `http://localhost:8080` to exercise the new Pull-ups path:
 
-- IndexedDB persists per-device, per-origin. Data stays as long as you don't clear site data or uninstall.
-- After install, `start_url`, `scope`, and `display` are cached by the OS. If we later change those, you'd need to reinstall — so we'll leave them alone.
-- No offline support yet (no service worker, by design — keeps preview safe). The app needs network to load, but once loaded all interactions are local.
-- Future republishes update the live URL automatically; the installed icon keeps working.
+1. Open `/setup`, select **Pull-ups**, enter a baseline (e.g. 8 reps), a deadline (~8 weeks out), and a target (e.g. 20). Submit.
+2. Land on `/` (Home) — verify baseline, current, target, days remaining render with no console errors.
+3. Open `/plan` — verify a week of sessions renders (Day A weighted 5/3/1 + Day B bodyweight) without runtime errors.
+4. Open `/checkin` and `/guarantee` briefly to confirm no regressions for other types.
 
-Approve and I'll publish.
+Screenshots saved under `/tmp/browser/pullups-smoke/screenshots/`. Report findings; only fix code if a real bug surfaces (otherwise stop here).
+
+### 2. Update `docs/tasks.md`
+
+Mark the two new commits as completed work:
+
+- Refactor plan engine to registry pattern (commit `b90715a`) — files under `src/lib/plan/*`.
+- Add Pull-ups standard with weighted 5/3/1 Day A + bodyweight Day B (commit `1086d2e`) — `src/lib/plan/pullups.ts`, type added to `StandardType`, wired into Setup/Home/Plan.
+
+If the relevant tasks aren't already listed, add them under a "Recently completed" section so the log stays accurate.
+
+### 3. Delete the legacy shim
+
+`src/lib/plan.ts` is now a 3-line re-export of `./plan/index`. All app imports use `@/lib/plan`, which TypeScript resolves to either `plan.ts` or `plan/index.ts`. To remove the ambiguity:
+
+1. Update the five route files (`setup.tsx`, `plan.tsx`, `index.tsx`, `checkin.tsx`, `guarantee.tsx`) to import from `@/lib/plan/index` instead of `@/lib/plan`.
+2. `rm src/lib/plan.ts`.
+3. Verify the preview is still healthy (`preview_control--get_preview_health`).
+
+No other files reference the shim.
+
+## Out of scope
+
+- No changes to engine logic (pace formulas, 5/3/1 waves, BBB) — the GitHub commits are treated as the source of truth.
+- No UI/design changes.
+- No new screens or features.
+
+## Deliverable
+
+A short report with: smoke-test screenshots/observations, the tasks.md diff summary, and confirmation that `src/lib/plan.ts` is gone and the preview is healthy.
