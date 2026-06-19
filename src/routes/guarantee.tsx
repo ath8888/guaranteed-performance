@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { standardService, checkinService } from "@/lib/db";
 import { STANDARD_META, type Standard } from "@/lib/types";
-import { fmtValue } from "@/lib/plan";
+import { fmtValue } from "@/lib/plan/index";
 
 export const Route = createFileRoute("/guarantee")({
   head: () => ({ meta: [{ title: "Guarantee" }] }),

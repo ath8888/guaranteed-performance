@@ -56,6 +56,12 @@ Reference docs: `docs/masterplan.md`, `docs/implementation-plan.md`,
 - [x] Setup now accepts an optional Test date input.
 - [x] Settings — Archive a Standard (hides it from all four tabs; data preserved for future History tab).
 
+### 8. Engine refactor & new Standard (June 19, 2026)
+- [x] Refactor plan engine to registry pattern (commit `b90715a`) — `src/lib/plan/{registry,index,shared,progression,strength,calisthenics,run}.ts`. No behavior change.
+- [x] Add **Pull-ups** Standard (commit `1086d2e`) — weighted 5/3/1 Day A + bodyweight Day B in `src/lib/plan/pullups.ts`; `StandardType` extended; wired into Setup, Home, Plan.
+- [x] Removed legacy `src/lib/plan.ts` shim; route imports now point at `@/lib/plan/index`.
+
+
 ---
 
 ## 🧪 Self-test (week of June 18, 2026)

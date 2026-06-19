@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { standardService, trainingService, sessionService, checkinService, advanceWave } from "@/lib/db";
 import { STANDARD_META, type SetActual, type SessionLog, type Standard, type TrainingState } from "@/lib/types";
-import { buildWeek, type PlannedSet, type Session } from "@/lib/plan";
+import { buildWeek, type PlannedSet, type Session } from "@/lib/plan/index";
 
 export const Route = createFileRoute("/plan")({
   head: () => ({ meta: [{ title: "This week" }] }),
