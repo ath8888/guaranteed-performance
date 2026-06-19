@@ -1,4 +1,6 @@
 import { WAVE, REP_SCHEME, roundLb, type PlannedSet, type Session } from "./shared";
+import type { StandardType } from "../types";
+import type { StandardEngine } from "./registry";
 
 export function liftWeek(week: 1 | 2 | 3 | 4, tm: number): Session[] {
   const pcts = WAVE[week];
@@ -25,3 +27,30 @@ export function liftWeek(week: 1 | 2 | 3 | 4, tm: number): Session[] {
   };
   return [main, bbb];
 }
+
+function isUpperBody(type: StandardType): boolean {
+  return type === "bench" || type === "ohp";
+}
+
+export const strengthEngine: StandardEngine = {
+  buildWeek(s, t) {
+    return liftWeek(t.week, t.trainingMax);
+  },
+  initTrainingMax(s) {
+    return roundLb(s.baseline * 0.9);
+  },
+  progressTrainingMax(s, current) {
+    return isUpperBody(s.type) ? current + 5 : current + 10;
+  },
+  nextTM(s, currentTM, amrapReps) {
+    const prescribed = 1;
+    if (amrapReps == null || amrapReps <= 0) return currentTM;
+    if (amrapReps < prescribed) return roundLb(currentTM * 0.9);
+    if (amrapReps === prescribed) return currentTM;
+    return strengthEngine.progressTrainingMax(s, currentTM);
+  },
+  wavesToTarget(s, current) {
+    const perWave = isUpperBody(s.type) ? 5 : 10;
+    return Math.ceil((s.target - current) / perWave);
+  },
+};

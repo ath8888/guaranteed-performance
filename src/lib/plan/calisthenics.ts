@@ -1,4 +1,5 @@
 import { WAVE, REP_SCHEME, type PlannedSet, type Session } from "./shared";
+import type { StandardEngine } from "./registry";
 
 /**
  * Calisthenics hybrid (pushups): 5/3/1 + density + submaximal frequent exposure.
@@ -28,7 +29,6 @@ function dayA(week: 1 | 2 | 3 | 4, repTM: number): Session[] | Session {
     kind: "main",
   };
   if (week === 4) return main;
-  // FSL accessory: 3 × 55% TM, relaxed pace
   const fslReps = Math.max(1, Math.round(repTM * 0.55));
   const fslSets: PlannedSet[] = Array.from({ length: 3 }, () => ({ reps: fslReps }));
   const fsl: Session = {
@@ -40,15 +40,12 @@ function dayA(week: 1 | 2 | 3 | 4, repTM: number): Session[] | Session {
   return [main, fsl];
 }
 
-// Helper that always returns an array
 function dayA_(week: 1 | 2 | 3 | 4, repTM: number): Session[] {
   const out = dayA(week, repTM);
   return Array.isArray(out) ? out : [out];
 }
 
 function dayB(week: 1 | 2 | 3 | 4, repTM: number): Session[] {
-  // Density coefficients tuned so TM≈47 reproduces the doc's
-  // printed reps (10, 12, 15, 10) within ±1 rep.
   const cfg = {
     1: { sets: 10, coef: 0.22, rest: "30–45 s rest", title: "Day B — Density" },
     2: { sets: 8,  coef: 0.26, rest: "30 s rest",    title: "Day B — Density" },
@@ -65,7 +62,6 @@ function dayB(week: 1 | 2 | 3 | 4, repTM: number): Session[] {
   };
   if (week === 1) return [density];
 
-  // 2-minute test efforts
   const testCfg = {
     2: { title: "2-min effort @ ~80%", reps: Math.max(1, Math.round(repTM * 0.80)), amrap: false, note: "Paced — not all-out" },
     3: { title: "2-min test (all-out)", reps: Math.max(1, Math.round(repTM * 1.00)), amrap: true,  note: "Logs as Check-in on save" },
@@ -81,5 +77,28 @@ function dayB(week: 1 | 2 | 3 | 4, repTM: number): Session[] {
   return [density, test];
 }
 
-// re-export normalized day A for index.ts
 export { dayA_ as pushupDayA };
+
+export const calisthenicsEngine: StandardEngine = {
+  buildWeek(s, t) {
+    return pushupWeek(t.week, t.trainingMax);
+  },
+  initTrainingMax(s) {
+    return Math.round(s.baseline * 0.9);
+  },
+  progressTrainingMax(s, current) {
+    return current + 2;
+  },
+  nextTM(s, currentTM, amrapReps) {
+    const prescribed = 1;
+    if (amrapReps == null || amrapReps <= 0) return currentTM;
+    if (amrapReps < prescribed) return Math.max(1, Math.round(currentTM * 0.9));
+    if (amrapReps === prescribed) return currentTM;
+    return calisthenicsEngine.progressTrainingMax(s, currentTM);
+  },
+  wavesToTarget(s, current) {
+    const gap = s.target - current;
+    const perWave = Math.max(10, Math.round(gap * 0.30));
+    return Math.ceil(gap / perWave);
+  },
+};
