@@ -10,9 +10,9 @@ export const Route = createFileRoute("/setup")({
   component: Setup,
 });
 
-const TYPES: StandardType[] = ["run3mi", "pushups", "bench", "ohp", "squat", "deadlift"];
+const TYPES: StandardType[] = ["run3mi", "pushups", "pullups", "bench", "ohp", "squat", "deadlift"];
 
-interface Draft { type: StandardType; baseline: string; target: string; testDate: string; }
+interface Draft { type: StandardType; baseline: string; target: string; testDate: string; pullBodyweight: string; pullAdded: string; pullReps: string; }
 interface PersistedDraft {
   picked: Record<StandardType, Draft | null>;
   step: "pick" | "values";
@@ -53,7 +53,13 @@ function Setup() {
       if (d) {
         // Backfill testDate if a legacy draft is missing it.
         const picked = Object.fromEntries(
-          Object.entries(d.picked).map(([k, v]) => [k, v ? { ...v, testDate: v.testDate ?? "" } : null])
+          Object.entries(d.picked).map(([k, v]) => [k, v ? {
+            ...v,
+            testDate: v.testDate ?? "",
+            pullBodyweight: v.pullBodyweight ?? "",
+            pullAdded: v.pullAdded ?? "",
+            pullReps: v.pullReps ?? "",
+          } : null])
         ) as Record<StandardType, Draft | null>;
         setPicked(picked);
         setStep(d.step);
@@ -75,9 +81,9 @@ function Setup() {
   const selected = TYPES.filter(t => picked[t]);
 
   function toggle(t: StandardType) {
-    setPicked(p => ({ ...p, [t]: p[t] ? null : { type: t, baseline: "", target: "", testDate: "" } }));
+    setPicked(p => ({ ...p, [t]: p[t] ? null : { type: t, baseline: "", target: "", testDate: "", pullBodyweight: "", pullAdded: "", pullReps: "" } }));
   }
-  function setField(t: StandardType, k: "baseline" | "target" | "testDate", v: string) {
+  function setField(t: StandardType, k: "baseline" | "target" | "testDate" | "pullBodyweight" | "pullAdded" | "pullReps", v: string) {
     setPicked(p => ({ ...p, [t]: p[t] ? { ...p[t]!, [k]: v } : null }));
   }
 
@@ -93,6 +99,14 @@ function Setup() {
       const target = parseFor(t, d.target);
       if (!baseline || !target) continue;
       if (!isDirectionValid(t, baseline, target)) continue;
+      let pullupTest: Standard["pullupTest"] | undefined;
+      if (t === "pullups") {
+        const bodyweightLb = Number(d.pullBodyweight) || 0;
+        const addedLb = Number(d.pullAdded) || 0;
+        const reps = Number(d.pullReps) || 0;
+        if (!bodyweightLb || !reps) continue; // incomplete pull-up test data, skip this standard
+        pullupTest = { bodyweightLb, addedLb, reps };
+      }
       const partial = { type: t, baseline, target } as Standard;
       const eta = etaDate(partial, baseline);
       const testDate = parseDate(d.testDate);
@@ -105,6 +119,7 @@ function Setup() {
         estCompletionDate: eta ? eta.toISOString() : undefined,
         createdAt: new Date().toISOString(),
         status: "active",
+        ...(pullupTest ? { pullupTest } : {}),
       };
       await standardService.save(s);
       await trainingService.save({
@@ -124,7 +139,11 @@ function Setup() {
     const d = picked[t]!;
     const b = parseFor(t, d.baseline);
     const g = parseFor(t, d.target);
-    return b > 0 && g > 0 && isDirectionValid(t, b, g);
+    if (!(b > 0 && g > 0 && isDirectionValid(t, b, g))) return false;
+    if (t === "pullups") {
+      return Number(d.pullBodyweight) > 0 && Number(d.pullReps) > 0;
+    }
+    return true;
   });
 
   return (
@@ -203,6 +222,40 @@ function Setup() {
 
                 {bothEntered && !directionOk && (
                   <p className="mt-2 text-xs text-destructive">{directionMessage(t)}</p>
+                )}
+
+                {t === "pullups" && (
+                  <div className="mt-3 rounded-md border border-hairline bg-muted p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                      Recent weighted set — used to estimate your added-weight starting point
+                    </p>
+                    <div className="mt-2 grid grid-cols-3 gap-2">
+                      <input
+                        inputMode="numeric"
+                        placeholder="Bodyweight (lb)"
+                        value={d.pullBodyweight}
+                        onChange={e => setField(t, "pullBodyweight", e.target.value)}
+                        className="rounded-md border border-hairline bg-background px-2 py-2 text-sm"
+                      />
+                      <input
+                        inputMode="numeric"
+                        placeholder="Added (lb)"
+                        value={d.pullAdded}
+                        onChange={e => setField(t, "pullAdded", e.target.value)}
+                        className="rounded-md border border-hairline bg-background px-2 py-2 text-sm"
+                      />
+                      <input
+                        inputMode="numeric"
+                        placeholder="Reps"
+                        value={d.pullReps}
+                        onChange={e => setField(t, "pullReps", e.target.value)}
+                        className="rounded-md border border-hairline bg-background px-2 py-2 text-sm"
+                      />
+                    </div>
+                    <p className="mt-1 text-[10px] text-ink-soft">
+                      0 added lb is fine if you only have a bodyweight set — just enter the reps.
+                    </p>
+                  </div>
                 )}
 
                 <div className="mt-3">

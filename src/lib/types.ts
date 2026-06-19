@@ -1,8 +1,9 @@
-export type StandardType = "run3mi" | "pushups" | "bench" | "ohp" | "squat" | "deadlift";
+export type StandardType = "run3mi" | "pushups" | "pullups" | "bench" | "ohp" | "squat" | "deadlift";
 
 export const STANDARD_META: Record<StandardType, { label: string; short: string; unit: string; kind: "load" | "reps" | "time"; lower: boolean }> = {
   run3mi:   { label: "3-Mile Run",    short: "Run",      unit: "mm:ss", kind: "time", lower: true  },
-  pushups:  { label: "Pushups (2 min)", short: "Pushups", unit: "reps",  kind: "reps", lower: false },
+  pushups:  { label: "Pushups (2 min)", short: "Pushups",  unit: "reps", kind: "reps", lower: false },
+  pullups:  { label: "Pull-ups",        short: "Pull-ups", unit: "reps", kind: "reps", lower: false },
   bench:    { label: "Bench Press",   short: "Bench",    unit: "lb",    kind: "load", lower: false },
   ohp:      { label: "Overhead Press",short: "OHP",      unit: "lb",    kind: "load", lower: false },
   squat:    { label: "Squat",         short: "Squat",    unit: "lb",    kind: "load", lower: false },
@@ -20,6 +21,14 @@ export interface Standard {
   estCompletionDate?: string;   // ISO date
   createdAt: string;
   status: "active" | "archived";
+  /**
+   * Pull-ups only. Seed data for Day A's weighted Training Max.
+   * baseline/target above remain bodyweight rep counts (the actual
+   * standard) — this is a separate, one-time measurement used only to
+   * estimate a starting added-weight 1RM via Epley. Not used for
+   * Guarantee tracking.
+   */
+  pullupTest?: { bodyweightLb: number; addedLb: number; reps: number };
 }
 
 export interface TrainingState {

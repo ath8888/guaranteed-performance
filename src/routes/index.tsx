@@ -17,7 +17,8 @@ function Home() {
       const enriched = await Promise.all(standards.map(async s => {
         const latest = await checkinService.latest(s.id);
         const training = await trainingService.get(s.id);
-        const week = training ? buildWeek(s, training) : [];
+        const current = latest?.value ?? s.baseline;
+        const week = training ? buildWeek(s, training, current) : [];
         const doneCount = training
           ? (await Promise.all(week.map((_, i) =>
               sessionService.isDone(s.id, training.cycle, training.week, i)

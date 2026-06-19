@@ -34,8 +34,21 @@ export function parseTime(input: string): number {
 
 export function fmtValue(type: StandardType, v: number): string {
   if (type === "run3mi") return fmtTime(v);
-  if (type === "pushups") return `${v}`;
+  if (type === "pushups" || type === "pullups") return `${v}`;
   return `${v} lb`;
+}
+
+/**
+ * Epley 1RM estimate. Valid roughly in the 1–10 rep range — accuracy
+ * degrades badly past ~12-15 reps as the limiting factor shifts from
+ * strength to muscular endurance. Always apply this to the TOTAL load
+ * actually moved (e.g. bodyweight + added weight for a weighted pull-up),
+ * never to a partial/added-only figure.
+ */
+export function estimate1RM(weight: number, reps: number): number {
+  if (reps <= 0) return weight;
+  if (reps === 1) return weight;
+  return weight * (1 + reps / 30);
 }
 
 export interface PlannedSet {

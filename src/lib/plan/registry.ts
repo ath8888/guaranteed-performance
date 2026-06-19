@@ -26,6 +26,7 @@ export interface StandardEngine {
 import { strengthEngine } from "./strength";
 import { calisthenicsEngine } from "./calisthenics";
 import { runEngine } from "./run";
+import { pullupsEngine } from "./pullups";
 
 export const ENGINES: Record<StandardType, StandardEngine> = {
   bench: strengthEngine,
@@ -33,5 +34,6 @@ export const ENGINES: Record<StandardType, StandardEngine> = {
   squat: strengthEngine,
   deadlift: strengthEngine,
   pushups: calisthenicsEngine,
+  pullups: pullupsEngine,
   run3mi: runEngine,
 };

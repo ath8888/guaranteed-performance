@@ -26,7 +26,9 @@ function Plan() {
       return Promise.all(standards.map(async s => {
         const training = await trainingService.get(s.id);
         if (!training) return { s, training: null, sessions: [], logs: [] };
-        const sessions = buildWeek(s, training);
+        const latest = await checkinService.latest(s.id);
+        const current = latest?.value ?? s.baseline;
+        const sessions = buildWeek(s, training, current);
         const logs = await Promise.all(sessions.map((_, i) =>
           sessionService.find(s.id, training.cycle, training.week, i)
         ));
@@ -129,7 +131,7 @@ function SessionCard({
 }) {
   const done = !!log;
   const hasSets = !!session.sets && session.sets.length > 0;
-  const isPushups = standard.type === "pushups";
+  const hasWeight = session.sets?.some(p => p.weight !== undefined) ?? false;
   const initial: SetActual[] = (session.sets ?? []).map((p, i) => {
     const a = log?.sets?.[i];
     return {
@@ -145,7 +147,7 @@ function SessionCard({
     const sets = vals.map((v, i) => {
       const planned = session.sets![i];
       return {
-        weight: isPushups ? undefined : (v.weight ?? planned.weight),
+        weight: hasWeight ? (v.weight ?? planned.weight) : undefined,
         reps: v.reps ?? planned.reps,
       };
     });
@@ -153,8 +155,10 @@ function SessionCard({
       { standardId: standard.id, cycle, week, sessionIndex },
       sets
     );
-    // Test sessions on Day B also write a Check-in so "current" + ETA update immediately.
-    if (session.kind === "test" && isPushups) {
+    // Bodyweight-only test sessions (pushups, pull-ups Day B) write a Check-in
+    // so "current" + ETA update immediately. Weighted test sessions (lifts'
+    // Day A) never have kind:"test", so this never fires for them.
+    if (session.kind === "test" && !hasWeight) {
       const reps = sets[0]?.reps;
       if (typeof reps === "number" && reps > 0) {
         await checkinService.add({
@@ -196,7 +200,7 @@ function SessionCard({
                     key={i}
                     planned={planned}
                     value={vals[i] ?? { weight: planned.weight, reps: planned.reps }}
-                    isPushups={isPushups}
+                    isPushups={!hasWeight}
                     onChange={(next) => {
                       const copy = vals.slice();
                       copy[i] = next;
