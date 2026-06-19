@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { standardService, checkinService, trainingService, advanceWave } from "@/lib/db";
 import { STANDARD_META } from "@/lib/types";
-import { fmtValue, parseTime } from "@/lib/plan";
+import { fmtValue, parseTime } from "@/lib/plan/index";
 
 export const Route = createFileRoute("/checkin")({
   head: () => ({ meta: [{ title: "Check-in" }] }),

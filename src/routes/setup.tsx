@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { standardService, trainingService, draftService } from "@/lib/db";
 import { STANDARD_META, type StandardType, type Standard } from "@/lib/types";
-import { initTrainingMax, parseTime, etaDate, fmtDate, wavesToTarget } from "@/lib/plan";
+import { initTrainingMax, parseTime, etaDate, fmtDate, wavesToTarget } from "@/lib/plan/index";
 
 export const Route = createFileRoute("/setup")({
   head: () => ({ meta: [{ title: "Set your standard" }] }),

@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { standardService, checkinService, trainingService, sessionService } from "@/lib/db";
 import { STANDARD_META } from "@/lib/types";
-import { buildWeek, fmtValue, fmtDate } from "@/lib/plan";
+import { buildWeek, fmtValue, fmtDate } from "@/lib/plan/index";
 
 export const Route = createFileRoute("/")({
   head: () => ({ meta: [{ title: "Guaranteed Standards" }] }),
