@@ -36,7 +36,7 @@ function relabelDayA(s: Session): Session {
     title: s.title
       .replace("Main lift — Deload", "Day A — Deload")
       .replace("Main lift", "Day A — Weighted")
-      .replace("Boring But Big", "Day A — Weighted volume"),
+      .replace("Boring But Big", "Day A — Boring But Big (volume)"),
   };
 }
 
