@@ -95,7 +95,7 @@ function Plan() {
               )}
               {training.week === 4 && s.type === "run3mi" && (
                 <p className="mt-3 text-[11px] uppercase tracking-wider text-muted-foreground">
-                  Log your 3-mile test on Check-in to advance the wave.
+                  Log your 3-mile goal on Check-in to advance the wave.
                 </p>
               )}
             </section>

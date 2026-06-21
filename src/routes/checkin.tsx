@@ -21,7 +21,7 @@ function Checkin() {
 
   if (!standards) return null;
   if (standards.length === 0) {
-    return <div className="px-6 pt-24 text-center text-sm text-muted-foreground">No standard set yet. Choose the test you need to pass.</div>;
+    return <div className="px-6 pt-24 text-center text-sm text-muted-foreground">No standard set yet. Choose the goal you need to hit.</div>;
   }
 
   const active = standards.find(s => s.id === activeId) ?? standards[0];
