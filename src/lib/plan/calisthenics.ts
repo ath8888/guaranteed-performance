@@ -32,7 +32,7 @@ function dayA(week: 1 | 2 | 3 | 4, repTM: number): Session[] | Session {
   const fslReps = Math.max(1, Math.round(repTM * 0.55));
   const fslSets: PlannedSet[] = Array.from({ length: 3 }, () => ({ reps: fslReps }));
   const fsl: Session = {
-    title: "FSL accessory",
+    title: "Day A — First Set Last accessory",
     lines: [`3 × ${fslReps} reps · clean, relaxed pace`],
     sets: fslSets,
     kind: "fsl",
