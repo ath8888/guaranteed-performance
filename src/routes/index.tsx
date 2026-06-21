@@ -37,7 +37,7 @@ function Home() {
       <div className="px-6 pt-20 text-center">
         <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Guaranteed Standards</p>
         <h1 className="display mt-4 text-[44px] leading-[0.95]">Hit the standard.<br/>Nothing extra.</h1>
-        <p className="mt-5 text-sm text-ink-soft">No standard set yet. Choose the test you need to pass.</p>
+        <p className="mt-5 text-sm text-ink-soft">No standard set yet. Choose the goal you need to hit.</p>
         <Link to="/setup" className="mt-10 inline-block w-full rounded-md bg-primary px-5 py-4 text-sm font-semibold text-primary-foreground">
           Set your standard
         </Link>
