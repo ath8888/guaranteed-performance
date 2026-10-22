@@ -9,13 +9,14 @@ import {
   ScrollView,
 } from "react-native";
 import { useState } from "react";
-import type { StandardType } from "../engine/types";
-import { STANDARD_META } from "../engine/types";
+import type { StandardCategory, StandardType } from "../engine/types";
+import { CATEGORY_LABEL, STANDARD_META } from "../engine/types";
 import { StandardService } from "../services/StandardService";
 import { TrainingService } from "../services/TrainingService";
 import { initTrainingMax } from "../engine/progression";
 
-const TYPES: StandardType[] = ["bench", "ohp", "squat", "deadlift"];
+const TYPES: StandardType[] = ["bench", "ohp", "squat", "deadlift", "olympic"];
+const CATEGORIES: StandardCategory[] = ["lifts", "olympic"];
 
 interface Props {
   visible: boolean;
@@ -29,6 +30,7 @@ export default function AddStandardSheet({ visible, onClose, onAdded }: Props) {
   const [start, setStart] = useState("");
   const [target, setTarget] = useState("");
   const [error, setError] = useState("");
+  const nameRequired = type === "olympic";
 
   function reset() {
     setType("bench");
@@ -41,6 +43,10 @@ export default function AddStandardSheet({ visible, onClose, onAdded }: Props) {
   async function handleAdd() {
     const b = parseInt(start, 10);
     const t = parseInt(target, 10);
+    if (nameRequired && !name.trim()) {
+      setError("Name your Olympic lift (e.g. Clean & Press).");
+      return;
+    }
     if (!b || !t || b <= 0 || t <= b) {
       setError("Target must be greater than start.");
       return;
@@ -75,29 +81,33 @@ export default function AddStandardSheet({ visible, onClose, onAdded }: Props) {
             </TouchableOpacity>
           </View>
 
-          {/* Type chips */}
-          <Text style={styles.label}>LIFT</Text>
-          <View style={styles.chips}>
-            {TYPES.map((t) => (
-              <TouchableOpacity
-                key={t}
-                style={[styles.chip, type === t && styles.chipActive]}
-                onPress={() => setType(t)}
-              >
-                <Text style={[styles.chipText, type === t && styles.chipTextActive]}>
-                  {STANDARD_META[t].short.toUpperCase()}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          {/* Type chips, grouped by category */}
+          {CATEGORIES.map((c) => (
+            <View key={c}>
+              <Text style={styles.label}>{CATEGORY_LABEL[c].toUpperCase()}</Text>
+              <View style={styles.chips}>
+                {TYPES.filter((t) => STANDARD_META[t].category === c).map((t) => (
+                  <TouchableOpacity
+                    key={t}
+                    style={[styles.chip, type === t && styles.chipActive]}
+                    onPress={() => setType(t)}
+                  >
+                    <Text style={[styles.chipText, type === t && styles.chipTextActive]}>
+                      {STANDARD_META[t].short.toUpperCase()}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          ))}
 
-          {/* Optional name */}
-          <Text style={styles.label}>NAME (OPTIONAL)</Text>
+          {/* Name — required for Olympic Lift (generic type) */}
+          <Text style={styles.label}>{nameRequired ? "NAME" : "NAME (OPTIONAL)"}</Text>
           <TextInput
             style={styles.input}
             value={name}
             onChangeText={setName}
-            placeholder={`e.g. ${STANDARD_META[type].label} 2`}
+            placeholder={nameRequired ? "e.g. Clean & Press" : `e.g. ${STANDARD_META[type].label} 2`}
             placeholderTextColor="#999"
           />
 

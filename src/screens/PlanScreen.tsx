@@ -34,6 +34,7 @@ interface CardData {
   session: Session;
   sessionIndex: number;
   status: SessionStatus;
+  canSkip: boolean;
 }
 
 function buildCards(
@@ -47,6 +48,16 @@ function buildCards(
     week: viewedWeek,
   });
 
+  const isLogged = (idx: number) =>
+    logs.some(
+      (l) =>
+        l.cycle === state.cycle &&
+        l.week === viewedWeek &&
+        l.sessionIndex === idx
+    );
+  // Optional work (BBB / FSL) can be skipped only once the week's required sessions are done.
+  const requiredDone = sessions.every((sess, idx) => sess.optional || isLogged(idx));
+
   return sessions.map((session, idx) => {
     let status: SessionStatus;
     if (viewedWeek < state.week) {
@@ -54,19 +65,14 @@ function buildCards(
     } else if (viewedWeek > state.week) {
       status = "upcoming";
     } else {
-      const isLogged = logs.some(
-        (l) =>
-          l.cycle === state.cycle &&
-          l.week === viewedWeek &&
-          l.sessionIndex === idx
-      );
-      if (isLogged) {
+      if (isLogged(idx)) {
         status = "done";
       } else {
         status = "today";
       }
     }
-    return { session, sessionIndex: idx, status };
+    const canSkip = !!session.optional && status === "today" && requiredDone;
+    return { session, sessionIndex: idx, status, canSkip };
   });
 }
 
@@ -137,6 +143,17 @@ export default function PlanScreen({ navigation, route }: any) {
   async function handleSelectStandard(id: string) {
     setSelectedId(id);
     await loadForId(id);
+  }
+
+  // Skip optional work without logging it. Optional sessions are never in the deload week,
+  // so finishing the week never rolls the cycle here — TM stays as is.
+  async function handleSkip(card: CardData) {
+    if (!selectedId || !trainingState) return;
+    const sessionCount = ENGINES[selected!.type].buildWeek(selected!, trainingState).length;
+    if (card.sessionIndex === sessionCount - 1) {
+      await TrainingService.advanceWeek(selectedId, trainingState.trainingMax);
+    }
+    await loadForId(selectedId);
   }
 
   if (!fontsLoaded) return null;
@@ -221,6 +238,7 @@ export default function PlanScreen({ navigation, route }: any) {
             <SessionCard
               key={i}
               card={card}
+              onSkip={() => handleSkip(card)}
               onGo={() =>
                 navigation.navigate("Execute", {
                   standardId: selected!.id,
@@ -238,9 +256,11 @@ export default function PlanScreen({ navigation, route }: any) {
 function SessionCard({
   card,
   onGo,
+  onSkip,
 }: {
   card: CardData;
   onGo: () => void;
+  onSkip: () => void;
 }) {
   const { session, status } = card;
   const isDone = status === "done";
@@ -274,6 +294,8 @@ function SessionCard({
       <View style={cs.sets}>
         {session.lines.map((line, i) => {
           const isAmrap = session.sets?.[i]?.amrap === true;
+          // Capped rep-logged set (Olympic set 3): tagged on today and upcoming weeks.
+          const isLogReps = isAmrap && !!session.sets?.[i]?.maxReps;
           return (
             <Text
               key={i}
@@ -284,16 +306,23 @@ function SessionCard({
               ]}
             >
               {line}
-              {isAmrap && isToday ? "  ← AMRAP" : ""}
+              {isLogReps && !isDone ? "  ← LOG REPS" : isAmrap && isToday ? "  ← AMRAP" : ""}
             </Text>
           );
         })}
       </View>
 
       {isToday && (
-        <TouchableOpacity style={cs.goBtn} onPress={onGo}>
-          <Text style={cs.goBtnText}>GO →</Text>
-        </TouchableOpacity>
+        <View style={cs.btnRow}>
+          {card.canSkip && (
+            <TouchableOpacity style={cs.skipBtn} onPress={onSkip}>
+              <Text style={cs.skipBtnText}>SKIP</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={cs.goBtn} onPress={onGo}>
+            <Text style={cs.goBtnText}>GO →</Text>
+          </TouchableOpacity>
+        </View>
       )}
     </View>
   );
@@ -416,12 +445,31 @@ const cs = StyleSheet.create({
   },
   setLineDim: { color: "#bbb" },
   setLineAmrap: { color: "#0000FF" },
-  goBtn: {
+  btnRow: {
+    flexDirection: "row",
     marginHorizontal: 10,
     marginBottom: 10,
+    gap: 10,
+  },
+  goBtn: {
+    flex: 2,
     padding: 10,
     backgroundColor: "#000",
     alignItems: "center",
+  },
+  skipBtn: {
+    flex: 1,
+    padding: 10,
+    backgroundColor: "#fff",
+    borderWidth: 2,
+    borderColor: "#000",
+    alignItems: "center",
+  },
+  skipBtnText: {
+    fontFamily: "ArchivoBlack_400Regular",
+    fontSize: 13,
+    letterSpacing: 1.5,
+    color: "#000",
   },
   goBtnText: {
     fontFamily: "ArchivoBlack_400Regular",

@@ -66,6 +66,13 @@ describe("StandardService", () => {
     const all = await StandardService.getAll();
     expect(all).toHaveLength(1);
   });
+
+  it("create sets category from type", async () => {
+    expect((await StandardService.create("ohp", 100, 150)).category).toBe("lifts");
+    const oly = await StandardService.create("olympic", 150, 200, "Clean & Press");
+    expect(oly.category).toBe("olympic");
+    expect(oly.name).toBe("Clean & Press");
+  });
 });
 
 // ── TrainingService ──────────────────────────────────────────────────────────

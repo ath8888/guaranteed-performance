@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { Standard, StandardCategory, StandardType } from "../engine/types";
+import { STANDARD_META } from "../engine/types";
 
 const KEY = "standards";
 
@@ -58,7 +59,7 @@ export const StandardService = {
     start: number,
     target: number,
     name?: string,
-    category: StandardCategory = "lifts"
+    category: StandardCategory = STANDARD_META[type].category
   ): Promise<Standard> {
     const standard: Standard = {
       id: `${type}-${Date.now()}`,

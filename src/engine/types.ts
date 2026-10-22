@@ -1,13 +1,19 @@
-export type StandardType = "bench" | "ohp" | "squat" | "deadlift";
+export type StandardType = "bench" | "ohp" | "squat" | "deadlift" | "olympic";
 
-// Future categories: "cardio" | "olympics" | ... — each will have its own progression engine
-export type StandardCategory = "lifts";
+// Each category has its own progression engine; every type in a category shares it.
+export type StandardCategory = "lifts" | "olympic";
 
-export const STANDARD_META: Record<StandardType, { label: string; short: string; unit: string; kind: "load"; lower: false }> = {
-  bench:    { label: "Bench Press",    short: "Bench",    unit: "lb", kind: "load", lower: false },
-  ohp:      { label: "Overhead Press", short: "OHP",      unit: "lb", kind: "load", lower: false },
-  squat:    { label: "Squat",          short: "Squat",    unit: "lb", kind: "load", lower: false },
-  deadlift: { label: "Deadlift",       short: "Deadlift", unit: "lb", kind: "load", lower: false },
+export const CATEGORY_LABEL: Record<StandardCategory, string> = {
+  lifts: "Lifts",
+  olympic: "Olympic Lift",
+};
+
+export const STANDARD_META: Record<StandardType, { label: string; short: string; unit: string; kind: "load"; lower: false; category: StandardCategory }> = {
+  bench:    { label: "Bench Press",    short: "Bench",    unit: "lb", kind: "load", lower: false, category: "lifts" },
+  ohp:      { label: "Overhead Press", short: "OHP",      unit: "lb", kind: "load", lower: false, category: "lifts" },
+  squat:    { label: "Squat",          short: "Squat",    unit: "lb", kind: "load", lower: false, category: "lifts" },
+  deadlift: { label: "Deadlift",       short: "Deadlift", unit: "lb", kind: "load", lower: false, category: "lifts" },
+  olympic:  { label: "Olympic Lift",   short: "Olympic",  unit: "lb", kind: "load", lower: false, category: "olympic" },
 };
 
 // Standard field definitions (displayed in UI as Start / Current / Target):

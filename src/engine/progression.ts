@@ -1,4 +1,4 @@
-import type { Standard, TrainingState } from "./types";
+import type { SessionLog, Standard, TrainingState } from "./types";
 import { ENGINES } from "./registry";
 import { roundLb } from "./shared";
 
@@ -12,6 +12,14 @@ export function progressTrainingMax(s: Standard, current: number): number {
 
 export function wendlerNextTM(s: Standard, currentTM: number, amrapReps?: number): number {
   return ENGINES[s.type].nextTM(s, currentTM, amrapReps);
+}
+
+// TM for the next cycle: decided only by the reps logged on this cycle's week 3 main-lift top set.
+// No week 3 log (or no reps) → TM holds.
+export function cycleEndTM(s: Standard, t: TrainingState, logs: SessionLog[]): number {
+  const week3Main = logs.find((l) => l.cycle === t.cycle && l.week === 3 && l.sessionIndex === 0);
+  const lastSet = week3Main?.sets?.[week3Main.sets.length - 1];
+  return wendlerNextTM(s, t.trainingMax, lastSet?.reps);
 }
 
 // Number of training-max increases (one per completed cycle) still needed to reach target.

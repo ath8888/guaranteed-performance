@@ -18,6 +18,7 @@
 - [ ] **F9** — Swipe left/right on Plan screen to switch between standards — **IN PROGRESS**
 - [x] **F10** — Keyboard no longer covers Add Standard sheet — DONE ✓ (tested on device 2026-10-21)
 - [x] **F11** — Remove goal date; show Estimated Completion Date on Home card, chart, and export — DONE ✓ (43/43 tests pass, tested on device 2026-10-21)
+- [x] **F12** (v1) — Olympic Lift category + type + engine (65/75/85, 70/80/90, 75/85/95 × 3; deload 40/50/60 × 3; optional FSL 3×3); SKIP on optional BBB/FSL; SKIP on Plan cards; set 3 reps logged weeks 1–3, week 3 decides TM — DONE ✓ (65/65 tests pass, tested on device 2026-10-21)
 
 ---
 

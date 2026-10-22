@@ -21,6 +21,7 @@ import { SpaceMono_400Regular } from "@expo-google-fonts/space-mono";
 import type { Standard, TrainingState } from "../engine/types";
 import { STANDARD_META } from "../engine/types";
 import { ENGINES } from "../engine/registry";
+import { cycleEndTM } from "../engine/progression";
 import type { Session } from "../engine/shared";
 import { StandardService } from "../services/StandardService";
 import { TrainingService } from "../services/TrainingService";
@@ -106,23 +107,10 @@ export default function ExecuteScreen({ navigation, route }: any) {
     if (hasAmrap && amrapReps !== null) {
       return ENGINES[standard!.type].nextTM(standard!, trainingState!.trainingMax, amrapReps);
     }
-    // Week 4 deload completing (cycle rollover): apply week 3 AMRAP progression
+    // Week 4 deload completing (cycle rollover): apply week 3 top-set progression
     if (trainingState!.week === 4) {
       const logs = await SessionService.getAll(standard!.id);
-      const week3Main = logs.find(
-        (l) =>
-          l.cycle === trainingState!.cycle &&
-          l.week === 3 &&
-          l.sessionIndex === 0
-      );
-      const lastSet = week3Main?.sets?.[week3Main.sets.length - 1];
-      if (lastSet?.reps !== undefined) {
-        return ENGINES[standard!.type].nextTM(
-          standard!,
-          trainingState!.trainingMax,
-          lastSet.reps
-        );
-      }
+      return cycleEndTM(standard!, trainingState!, logs);
     }
     return trainingState!.trainingMax;
   }
@@ -190,7 +178,7 @@ export default function ExecuteScreen({ navigation, route }: any) {
                     {set.weight} lb
                   </Text>
                   <Text style={[s.setLabel, isAmrap && s.setLabelAmrap]}>
-                    SET {i + 1} · {isAmrap ? "AMRAP" : `${set.reps} REPS`}
+                    SET {i + 1} · {isAmrap && !set.maxReps ? "AMRAP" : `${set.reps} REPS`}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -212,7 +200,9 @@ export default function ExecuteScreen({ navigation, route }: any) {
                     </Text>
                     <TouchableOpacity
                       style={s.amrapBtn}
-                      onPress={() => setAmrapReps((amrapReps ?? 0) + 1)}
+                      onPress={() =>
+                        setAmrapReps(Math.min(set.maxReps ?? Infinity, (amrapReps ?? 0) + 1))
+                      }
                     >
                       <Text style={s.amrapBtnText}>+</Text>
                     </TouchableOpacity>

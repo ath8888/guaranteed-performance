@@ -26,6 +26,7 @@ export interface PlannedSet {
   weight?: number;
   reps: number;
   amrap?: boolean;
+  maxReps?: number; // caps the logged reps on an amrap set (rep-logged set, not all-out)
   note?: string;
 }
 
@@ -35,4 +36,5 @@ export interface Session {
   sets?: PlannedSet[];
   amrap?: boolean;
   kind?: "main" | "bbb" | "fsl" | "density" | "test";
+  optional?: boolean; // supplemental work the user may SKIP
 }

@@ -24,6 +24,7 @@ export function liftWeek(week: 1 | 2 | 3 | 4, tm: number): Session[] {
     lines: [`5 × 10 @ ${bbbWeight} lb`],
     sets: bbbSets,
     kind: "bbb",
+    optional: true,
   };
   return [main, bbb];
 }

@@ -32,7 +32,7 @@ When in doubt, ask before touching it.
 | Runtime | React 19.2.3, Node 20 (via fnm) |
 | Navigation | React Navigation v6 — **3 bottom tabs: Home / Plan / Execute** |
 | Storage | AsyncStorage (local, no backend) |
-| Plan engine | Wendler 5/3/1 + BBB — `strength.ts`, `shared.ts`, `registry.ts`, `progression.ts` |
+| Plan engine | Wendler 5/3/1 + BBB (`strength.ts`), Olympic 5/3/1-style triples + FSL (`olympic.ts`) — via `registry.ts`, `progression.ts`, `shared.ts` |
 
 ## Dev environment (confirmed working)
 - **Phone:** Samsung SM-S911U, Expo Go SDK 57, connected via USB + WiFi LAN
@@ -45,8 +45,9 @@ When in doubt, ask before touching it.
 
 ---
 
-## MVP scope (decided — do not expand)
-- **Standards: Bench, OHP, Squat, Deadlift only.** Run/pushups/pullups are excluded from MVP.
+## Scope (v1 — do not expand without asking)
+- **Standards:** Lifts category (Bench, OHP, Squat, Deadlift) + Olympic Lift category (one generic "Olympic Lift" type, user names it). Run/pushups/pullups excluded.
+- **Progression is per category:** every type in a category uses the same engine. MVP shipped 2026-10-21; v1 started with F12.
 - **3 screens:** Home, Plan, Execute. No Setup tab.
 - **Add Standard:** "+" button centered at bottom of Home screen → opens a bottom sheet.
 - **Data:** local AsyncStorage only, no auth, no backend.
@@ -84,3 +85,4 @@ Full spec in `design.md`.
 - **F4** — Home screen + Add Standard sheet
 - **F5** — Plan screen
 - **F6** — Execute screen
+- **F12** (v1) — Olympic Lift category + engine; optional supplemental sessions (BBB/FSL) with SKIP
