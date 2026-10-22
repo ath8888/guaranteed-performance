@@ -10,12 +10,14 @@
 - [x] **F1** — Project setup + navigation structure (Expo + React Navigation, 3 bottom tabs: Home / Plan / Execute) — DONE ✓ (tested on device 2026-10-18)
 - [x] **F2** — Port plan engine (strength.ts + shared.ts + registry.ts + progression.ts only — no run/pushup/pullup engines) — DONE ✓ (20/20 tests pass 2026-10-18)
 - [x] **F3** — AsyncStorage service layer (StandardService, TrainingService, SessionService, ExportService) — DONE ✓ (40/40 tests pass 2026-10-18)
-- [x] **F4** — Home screen + Add Standard sheet ("+" button → bottom sheet: 4 chips Bench/OHP/Squat/Deadlift, lb inputs, goal date) — DONE ✓ (tested on device 2026-10-18)
+- [x] **F4** — Home screen + Add Standard sheet ("+" button → bottom sheet: 4 chips Bench/OHP/Squat/Deadlift, lb inputs) — DONE ✓ (tested on device 2026-10-18)
 - [x] **F5** — Plan screen (standard selector, week indicator W1–W4, session cards: done/today/upcoming) — DONE ✓ (tested on device 2026-10-18)
 - [x] **F6** — Execute screen (set-by-set checkboxes, mark complete → return to Plan) — DONE ✓ (tested on device 2026-10-18)
 - [x] **F7** — Archive/Delete standard from Home (long-press → action row → confirm delete) — DONE ✓ (tested on device 2026-10-18)
 - [x] **F8** — 1RM growth chart per standard (line chart from session logs, accessible from Home) — DONE ✓ (tested on device 2026-10-18)
 - [ ] **F9** — Swipe left/right on Plan screen to switch between standards — **IN PROGRESS**
+- [x] **F10** — Keyboard no longer covers Add Standard sheet — DONE ✓ (tested on device 2026-10-21)
+- [x] **F11** — Remove goal date; show Estimated Completion Date on Home card, chart, and export — DONE ✓ (43/43 tests pass, tested on device 2026-10-21)
 
 ---
 

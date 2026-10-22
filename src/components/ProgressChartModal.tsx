@@ -8,10 +8,12 @@ import {
   View,
 } from "react-native";
 import Svg, { Circle, G, Line, Polyline, Text as SvgText } from "react-native-svg";
-import type { SessionLog, Standard } from "../engine/types";
+import type { SessionLog, Standard, TrainingState } from "../engine/types";
 import { STANDARD_META } from "../engine/types";
 import { estimate1RM } from "../engine/shared";
+import { estCompletionLabel } from "../engine/progression";
 import { SessionService } from "../services/SessionService";
+import { TrainingService } from "../services/TrainingService";
 
 interface DataPoint {
   date: string;
@@ -52,12 +54,14 @@ const IH = C_H - PAD_T - PAD_B;
 
 export default function ProgressChartModal({ visible, onClose, standard }: Props) {
   const [points, setPoints] = useState<DataPoint[]>([]);
+  const [training, setTraining] = useState<TrainingState | null>(null);
 
   useEffect(() => {
     if (visible && standard) {
       SessionService.getAll(standard.id).then((logs) => {
         setPoints(buildDataPoints(logs));
       });
+      TrainingService.get(standard.id).then(setTraining);
     }
   }, [visible, standard?.id]);
 
@@ -232,6 +236,11 @@ export default function ProgressChartModal({ visible, onClose, standard }: Props
             </View>
           </>
         )}
+
+        <View style={s.etaRow}>
+          <Text style={s.etaLabel}>ESTIMATED COMPLETION DATE</Text>
+          <Text style={s.etaValue}>{estCompletionLabel(standard, training)}</Text>
+        </View>
       </View>
     </Modal>
   );
@@ -303,4 +312,24 @@ const s = StyleSheet.create({
     color: "#0000FF",
   },
   statUnit: { fontSize: 11, color: "#0000FF" },
+  etaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderTopWidth: 2,
+    borderTopColor: "#000",
+    marginTop: 12,
+    paddingTop: 12,
+  },
+  etaLabel: {
+    fontFamily: "WorkSans_600SemiBold",
+    fontSize: 9,
+    letterSpacing: 1.5,
+    color: "#666",
+  },
+  etaValue: {
+    fontFamily: "SpaceMono_400Regular",
+    fontSize: 13,
+    color: "#000",
+  },
 });

@@ -42,8 +42,8 @@ export const strengthEngine: StandardEngine = {
     if (amrapReps === 1) return currentTM;
     return strengthEngine.progressTrainingMax(s, currentTM);
   },
-  wavesToTarget(s, current) {
+  wavesToTarget(s, trainingMax) {
     const perWave = isUpperBody(s.type) ? 5 : 10;
-    return Math.ceil((s.target - current) / perWave);
+    return Math.ceil((s.target * 0.9 - trainingMax) / perWave);
   },
 };

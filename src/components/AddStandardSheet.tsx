@@ -28,7 +28,6 @@ export default function AddStandardSheet({ visible, onClose, onAdded }: Props) {
   const [name, setName] = useState("");
   const [start, setStart] = useState("");
   const [target, setTarget] = useState("");
-  const [goalDate, setGoalDate] = useState("");
   const [error, setError] = useState("");
 
   function reset() {
@@ -36,7 +35,6 @@ export default function AddStandardSheet({ visible, onClose, onAdded }: Props) {
     setName("");
     setStart("");
     setTarget("");
-    setGoalDate("");
     setError("");
   }
 
@@ -47,12 +45,8 @@ export default function AddStandardSheet({ visible, onClose, onAdded }: Props) {
       setError("Target must be greater than start.");
       return;
     }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(goalDate)) {
-      setError("Date must be YYYY-MM-DD.");
-      return;
-    }
     const trimmedName = name.trim() || undefined;
-    const standard = await StandardService.create(type, b, t, goalDate, trimmedName);
+    const standard = await StandardService.create(type, b, t, trimmedName);
     const tm = initTrainingMax(standard);
     await TrainingService.init(standard.id, tm);
     reset();
@@ -126,16 +120,6 @@ export default function AddStandardSheet({ visible, onClose, onAdded }: Props) {
             onChangeText={setTarget}
             placeholder="e.g. 300"
             placeholderTextColor="#999"
-          />
-
-          <Text style={styles.label}>GOAL DATE (YYYY-MM-DD)</Text>
-          <TextInput
-            style={styles.input}
-            value={goalDate}
-            onChangeText={setGoalDate}
-            placeholder="e.g. 2027-06-01"
-            placeholderTextColor="#999"
-            autoCapitalize="none"
           />
 
           {error ? <Text style={styles.error}>{error}</Text> : null}

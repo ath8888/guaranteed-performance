@@ -42,7 +42,6 @@ Guaranteed Standards is a minimal, clinical fitness-test prep app for military, 
 - Standard picker: chip group (Bench / OHP / Squat / Deadlift — 4 chips only)
 - Baseline input (lb)
 - Target input (lb)
-- Test date (optional, date picker)
 
 **Validation**: baseline > 0, target > 0, target > baseline
 
@@ -83,7 +82,6 @@ interface Standard {
   type: StandardType;
   baseline: number;
   target: number;
-  deadline?: string;         // ISO date string
   status: "active" | "archived";
   createdAt: string;
 }

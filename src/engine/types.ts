@@ -22,8 +22,6 @@ export interface Standard {
   category: StandardCategory;
   start: number;
   target: number;
-  desiredCompletionDate: string;
-  estCompletionDate?: string;
   createdAt: string;
   status: "active" | "archived";
 }

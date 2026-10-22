@@ -55,7 +55,6 @@ interface Standard {
   type: StandardType
   baseline: number          // starting value (the day they set up)
   target: number            // required standard to pass
-  deadline?: string         // ISO date — test date
   status: "active" | "archived"
   createdAt: string
 }

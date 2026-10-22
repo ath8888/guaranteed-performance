@@ -1,7 +1,7 @@
 import { roundLb, estimate1RM } from "../shared";
 import { liftWeek } from "../strength";
 import { ENGINES } from "../registry";
-import { initTrainingMax, wendlerNextTM, wavesToTarget, etaDate } from "../progression";
+import { initTrainingMax, wendlerNextTM, wavesToTarget, estCompletionDate } from "../progression";
 import type { Standard } from "../types";
 
 const bench: Standard = {
@@ -10,7 +10,6 @@ const bench: Standard = {
   category: "lifts",
   start: 200,
   target: 300,
-  desiredCompletionDate: "2027-01-01",
   createdAt: "2026-01-01",
   status: "active",
 };
@@ -21,7 +20,6 @@ const squat: Standard = {
   category: "lifts",
   start: 300,
   target: 400,
-  desiredCompletionDate: "2027-01-01",
   createdAt: "2026-01-01",
   status: "active",
 };
@@ -110,32 +108,45 @@ describe("wendlerNextTM", () => {
 });
 
 describe("wavesToTarget", () => {
-  it("returns 0 when already at target", () => {
-    const done = { ...bench, start: 300 };
-    expect(wavesToTarget(done, 300)).toBe(0);
+  it("returns 0 when current 1RM (TM / 0.9) reaches target", () => {
+    // bench target 300 → TM 270 → est 1RM 300
+    expect(wavesToTarget(bench, 270)).toBe(0);
   });
   it("returns 0 when above target", () => {
-    expect(wavesToTarget(bench, 350)).toBe(0);
+    expect(wavesToTarget(bench, 300)).toBe(0);
   });
-  it("calculates waves needed for bench (5lb/wave)", () => {
-    // bench at 200, target 300 → 100lb gap / 5 per wave = 20 waves
-    expect(wavesToTarget(bench, 200)).toBe(20);
+  it("calculates TM increases needed for bench (5lb/wave)", () => {
+    // TM 180, target TM 270 → 90 / 5 = 18 waves
+    expect(wavesToTarget(bench, 180)).toBe(18);
   });
-  it("calculates waves needed for squat (10lb/wave)", () => {
-    // squat at 300, target 400 → 100lb gap / 10 per wave = 10 waves
-    expect(wavesToTarget(squat, 300)).toBe(10);
+  it("calculates TM increases needed for squat (10lb/wave)", () => {
+    // TM 270, target TM 360 → 90 / 10 = 9 waves
+    expect(wavesToTarget(squat, 270)).toBe(9);
+  });
+  it("needs at least 1 wave when just short of target", () => {
+    // TM 266 → est 1RM 295 < 300; gap to 270 is 4lb → 1 wave
+    expect(wavesToTarget(bench, 266)).toBe(1);
   });
 });
 
-describe("etaDate", () => {
+describe("estCompletionDate", () => {
+  const from = new Date("2026-01-01");
+  const daysFrom = (d: Date) => Math.round((d.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
+  const state = (trainingMax: number, week: 1 | 2 | 3 | 4) => ({ standardId: "x", trainingMax, cycle: 1, week });
+
   it("returns null when target already met", () => {
-    expect(etaDate(bench, 300, new Date("2026-01-01"))).toBeNull();
+    expect(estCompletionDate(bench, state(270, 2), from)).toBeNull();
   });
-  it("returns a future date proportional to waves", () => {
-    const from = new Date("2026-01-01");
-    const eta = etaDate(bench, 200, from); // 20 waves × 28 days = 560 days
-    expect(eta).not.toBeNull();
-    const diffDays = Math.round((eta!.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
-    expect(diffDays).toBe(560);
+  it("bench at week 1: finish this cycle + 4 weeks per further wave", () => {
+    // 18 waves → 4 + 17×4 = 72 weeks = 504 days
+    expect(daysFrom(estCompletionDate(bench, state(180, 1), from)!)).toBe(504);
+  });
+  it("squat mid-cycle (week 3) counts only the weeks left in this cycle", () => {
+    // 9 waves → 2 + 8×4 = 34 weeks = 238 days
+    expect(daysFrom(estCompletionDate(squat, state(270, 3), from)!)).toBe(238);
+  });
+  it("last wave during deload week completes in 1 week", () => {
+    // TM 265 → 1 wave; week 4 → 1 week = 7 days
+    expect(daysFrom(estCompletionDate(bench, state(265, 4), from)!)).toBe(7);
   });
 });

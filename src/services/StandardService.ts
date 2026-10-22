@@ -21,6 +21,11 @@ export const StandardService = {
         dirty = true;
         record = { ...record, category: "lifts" };
       }
+      if ("desiredCompletionDate" in record || "estCompletionDate" in record) {
+        dirty = true;
+        const { desiredCompletionDate, estCompletionDate, ...rest } = record;
+        record = rest;
+      }
       return record as Standard;
     });
     if (dirty) await AsyncStorage.setItem(KEY, JSON.stringify(migrated));
@@ -52,7 +57,6 @@ export const StandardService = {
     type: StandardType,
     start: number,
     target: number,
-    desiredCompletionDate: string,
     name?: string,
     category: StandardCategory = "lifts"
   ): Promise<Standard> {
@@ -63,7 +67,6 @@ export const StandardService = {
       category,
       start,
       target,
-      desiredCompletionDate,
       createdAt: new Date().toISOString(),
       status: "active",
     };

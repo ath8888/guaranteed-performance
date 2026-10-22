@@ -20,6 +20,7 @@ import { SpaceMono_400Regular } from "@expo-google-fonts/space-mono";
 import type { Standard, TrainingState } from "../engine/types";
 import { STANDARD_META } from "../engine/types";
 import { roundLb } from "../engine/shared";
+import { estCompletionLabel } from "../engine/progression";
 import { StandardService } from "../services/StandardService";
 import { TrainingService } from "../services/TrainingService";
 import { SessionService } from "../services/SessionService";
@@ -199,6 +200,10 @@ function StandardCard({
           </Text>
         </View>
       </View>
+      <View style={styles.etaRow}>
+        <Text style={styles.etaLabel}>ESTIMATED COMPLETION DATE</Text>
+        <Text style={styles.etaValue}>{estCompletionLabel(standard, training)}</Text>
+      </View>
 
       {actionOpen && (
         <View style={styles.actionRow}>
@@ -367,6 +372,26 @@ const styles = StyleSheet.create({
   },
   numUnit: {
     fontSize: 11,
+  },
+  etaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderTopWidth: 2,
+    borderTopColor: "#000",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  etaLabel: {
+    fontFamily: "WorkSans_600SemiBold",
+    fontSize: 9,
+    letterSpacing: 1.5,
+    color: "#666",
+  },
+  etaValue: {
+    fontFamily: "SpaceMono_400Regular",
+    fontSize: 13,
+    color: "#000",
   },
   actionRow: {
     flexDirection: "row",

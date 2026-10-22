@@ -15,7 +15,6 @@ const bench: Standard = {
   category: "lifts",
   start: 200,
   target: 300,
-  desiredCompletionDate: "2027-01-01",
   createdAt: "2026-01-01T00:00:00.000Z",
   status: "active",
 };
@@ -61,7 +60,7 @@ describe("StandardService", () => {
   });
 
   it("create returns a standard with generated id", async () => {
-    const s = await StandardService.create("ohp", 100, 150, "2027-06-01");
+    const s = await StandardService.create("ohp", 100, 150);
     expect(s.type).toBe("ohp");
     expect(s.start).toBe(100);
     const all = await StandardService.getAll();
