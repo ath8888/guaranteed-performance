@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
 } from "react-native";
 import { useState } from "react";
@@ -68,8 +67,13 @@ export default function AddStandardSheet({ visible, onClose, onAdded }: Props) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={handleClose} />
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.sheetWrapper}>
-        <View style={styles.sheet}>
+      <KeyboardAvoidingView behavior="padding" style={styles.sheetWrapper}>
+        <ScrollView
+          style={styles.sheet}
+          contentContainerStyle={styles.sheetContent}
+          keyboardShouldPersistTaps="handled"
+          bounces={false}
+        >
           <View style={styles.header}>
             <Text style={styles.title}>ADD STANDARD</Text>
             <TouchableOpacity onPress={handleClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
@@ -139,7 +143,7 @@ export default function AddStandardSheet({ visible, onClose, onAdded }: Props) {
           <TouchableOpacity style={styles.addBtn} onPress={handleAdd}>
             <Text style={styles.addBtnText}>ADD</Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -155,11 +159,14 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
+    maxHeight: "100%",
   },
   sheet: {
     backgroundColor: "#fff",
     borderTopWidth: 3,
     borderTopColor: "#000",
+  },
+  sheetContent: {
     padding: 20,
     paddingBottom: 36,
   },
