@@ -19,6 +19,8 @@
 - [x] **F10** — Keyboard no longer covers Add Standard sheet — DONE ✓ (tested on device 2026-10-21)
 - [x] **F11** — Remove goal date; show Estimated Completion Date on Home card, chart, and export — DONE ✓ (43/43 tests pass, tested on device 2026-10-21)
 - [x] **F12** (v1) — Olympic Lift category + type + engine (65/75/85, 70/80/90, 75/85/95 × 3; deload 40/50/60 × 3; optional FSL 3×3); SKIP on optional BBB/FSL; SKIP on Plan cards; set 3 reps logged weeks 1–3, week 3 decides TM — DONE ✓ (65/65 tests pass, tested on device 2026-10-21)
+- [x] **F13** (v1) — Calisthenics category + Push-ups engine (strength block: vest 5–8 reps double progression; endurance block: 3 × 50% max, +2 reps after 2 clean sessions; never both in one session; week 4 retest; stall levers; tiers <30 / >60 configurable) — engine + tests only — DONE ✓ (108/108 tests pass 2026-10-21; no UI yet)
+- [ ] **F14** (v1) — Push-ups screens: Add sheet vest load, editable load per strength session, per-set endurance reps, retest, Recommended/Optional labels, reps units on Home/chart
 
 ---
 
@@ -39,6 +41,11 @@
 - Wrote: `android-mvp-plan.md`, `master-plan.md`, `design.md`, `progress.md`
 - Wireframe v2 approved (bottom nav, "+" on Home, 4 barbell standards)
 - Ready to code F1
+
+---
+
+## V2 Backlog
+- **Learning predictions** — look at each user's progression over time and improve the Estimated Completion Date model (replace fixed assumptions like +10%/cycle for push-ups).
 
 ---
 

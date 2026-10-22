@@ -33,12 +33,35 @@ export function wavesToTarget(s: Standard, trainingMax: number): number {
 // then 4 weeks per further increase. Assumes one training week per calendar week and on-plan progress.
 // Returns null when the target is already reached.
 export function estCompletionDate(s: Standard, t: TrainingState, from = new Date()): Date | null {
-  const waves = wavesToTarget(s, t.trainingMax);
-  if (waves === 0) return null;
-  const weeks = (5 - t.week) + (waves - 1) * 4;
+  const engine = ENGINES[s.type];
+  let weeks: number;
+  if (engine.estWeeksToTarget) {
+    weeks = engine.estWeeksToTarget(s, t);
+    if (weeks === 0) return null;
+  } else {
+    const waves = wavesToTarget(s, t.trainingMax);
+    if (waves === 0) return null;
+    weeks = (5 - t.week) + (waves - 1) * 4;
+  }
   const d = new Date(from);
   d.setDate(d.getDate() + weeks * 7);
   return d;
+}
+
+// "Current" shown in the UI: estimated 1RM for barbell engines, latest max reps for calisthenics.
+export function currentValue(s: Standard, t: TrainingState | null): number {
+  if (!t) return s.start;
+  const engine = ENGINES[s.type];
+  return engine.currentValue ? engine.currentValue(s, t) : roundLb(t.trainingMax / 0.9);
+}
+
+// True when every session in the current week has a log (completed or skipped).
+export function isWeekComplete(s: Standard, t: TrainingState, logs: SessionLog[]): boolean {
+  const count = ENGINES[s.type].buildWeek(s, t).length;
+  for (let i = 0; i < count; i++) {
+    if (!logs.some((l) => l.cycle === t.cycle && l.week === t.week && l.sessionIndex === i)) return false;
+  }
+  return true;
 }
 
 export function estCompletionLabel(s: Standard, t: TrainingState | null): string {

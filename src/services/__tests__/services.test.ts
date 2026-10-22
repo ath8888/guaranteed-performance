@@ -72,6 +72,7 @@ describe("StandardService", () => {
     const oly = await StandardService.create("olympic", 150, 200, "Clean & Press");
     expect(oly.category).toBe("olympic");
     expect(oly.name).toBe("Clean & Press");
+    expect((await StandardService.create("pushups", 20, 50)).category).toBe("calisthenics");
   });
 });
 

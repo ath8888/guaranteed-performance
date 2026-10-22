@@ -7,10 +7,14 @@ export interface StandardEngine {
   progressTrainingMax(s: Standard, current: number): number;
   nextTM(s: Standard, currentTM: number, amrapReps?: number): number;
   wavesToTarget(s: Standard, trainingMax: number): number;
+  // Optional overrides for engines not driven by a barbell training max (e.g. calisthenics)
+  currentValue?(s: Standard, t: TrainingState): number;
+  estWeeksToTarget?(s: Standard, t: TrainingState): number; // 0 = target reached
 }
 
 import { strengthEngine } from "./strength";
 import { olympicEngine } from "./olympic";
+import { calisthenicsEngine } from "./calisthenics";
 
 export const ENGINES: Record<StandardType, StandardEngine> = {
   bench:    strengthEngine,
@@ -18,4 +22,5 @@ export const ENGINES: Record<StandardType, StandardEngine> = {
   squat:    strengthEngine,
   deadlift: strengthEngine,
   olympic:  olympicEngine,
+  pushups:  calisthenicsEngine,
 };

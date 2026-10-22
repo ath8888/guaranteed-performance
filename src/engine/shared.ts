@@ -35,6 +35,9 @@ export interface Session {
   lines: string[];
   sets?: PlannedSet[];
   amrap?: boolean;
-  kind?: "main" | "bbb" | "fsl" | "density" | "test";
+  kind?: "main" | "bbb" | "fsl" | "density" | "test" | "strength" | "endurance" | "retest";
   optional?: boolean; // supplemental work the user may SKIP
+  recommended?: boolean; // calisthenics: block the plan currently emphasizes
+  sessionNo?: number;  // calisthenics: workout number within the week (0 = A, 1 = B, 2 = C)
+  restSec?: number;    // rest between sets, display only
 }

@@ -46,7 +46,7 @@ When in doubt, ask before touching it.
 ---
 
 ## Scope (v1 — do not expand without asking)
-- **Standards:** Lifts category (Bench, OHP, Squat, Deadlift) + Olympic Lift category (one generic "Olympic Lift" type, user names it). Run/pushups/pullups excluded.
+- **Standards:** Lifts (Bench, OHP, Squat, Deadlift), Olympic Lift (one generic type, user names it), Calisthenics (Push-ups). Run/pullups excluded.
 - **Progression is per category:** every type in a category uses the same engine. MVP shipped 2026-10-21; v1 started with F12.
 - **3 screens:** Home, Plan, Execute. No Setup tab.
 - **Add Standard:** "+" button centered at bottom of Home screen → opens a bottom sheet.
