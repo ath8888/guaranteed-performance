@@ -14,7 +14,8 @@ export const SessionService = {
     cycle: number,
     week: number,
     sessionIndex: number,
-    sets?: SetActual[]
+    sets?: SetActual[],
+    skipped = false
   ): Promise<SessionLog> {
     const entry: SessionLog = {
       id: `${standardId}-${cycle}-${week}-${sessionIndex}-${Date.now()}`,
@@ -24,6 +25,7 @@ export const SessionService = {
       sessionIndex,
       completedAt: new Date().toISOString(),
       sets,
+      ...(skipped ? { skipped } : {}),
     };
     const all = await SessionService.getAll(standardId);
     all.push(entry);

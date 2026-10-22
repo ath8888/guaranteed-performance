@@ -39,5 +39,4 @@ export interface Session {
   optional?: boolean; // supplemental work the user may SKIP
   recommended?: boolean; // calisthenics: block the plan currently emphasizes
   sessionNo?: number;  // calisthenics: workout number within the week (0 = A, 1 = B, 2 = C)
-  restSec?: number;    // rest between sets, display only
 }

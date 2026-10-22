@@ -5,6 +5,8 @@ import {
   calisthenicsWeeksToTarget,
   enduranceSetCount,
   initCalState,
+  nextWorkoutDate,
+  restDaysBetween,
   isStalled,
   sessionsPerWeek,
   tierFor,
@@ -67,11 +69,10 @@ describe("weekly plan", () => {
     expect(s.sets).toEqual([{ weight: 15, reps: 5, amrap: true }]);
     expect(s.lines[0]).toBe("15 lb vest × 5–8 (to failure)");
   });
-  it("endurance block: 3 sets at the current endurance reps, 60s rest, each set logged and capped", () => {
+  it("endurance block: 3 sets at the current endurance reps, each set logged and capped", () => {
     const e = enduranceOf(st({ max: 40 }));
     expect(e.sets).toHaveLength(3);
     expect(e.sets!.every((x) => x.reps === 20 && x.maxReps === 20 && x.amrap)).toBe(true);
-    expect(e.restSec).toBe(60);
   });
   it("week 4 is a single retest card", () => {
     const w = week(st({ max: 40 }, 4));
@@ -240,6 +241,22 @@ describe("stall levers: volume first", () => {
   it("'Stalled' note only after both levers are in use and stalls continue", () => {
     expect(isStalled(st({ max: 40, stallCount: 5 }).cal!)).toBe(false);
     expect(isStalled(st({ max: 40, stallCount: 6 }).cal!)).toBe(true);
+  });
+});
+
+describe("workout spacing", () => {
+  const mon6pm = new Date(2026, 9, 19, 18, 0).toISOString(); // Mon Oct 19, 6pm local
+  it("2 workouts/week: 2 full rest days (Mon → Thu)", () => {
+    expect(restDaysBetween(st({ max: 40 }).cal!)).toBe(2);
+    expect(nextWorkoutDate([mon6pm], 2)).toEqual(new Date(2026, 9, 22));
+  });
+  it("3 workouts/week: 1 full rest day (Mon → Wed)", () => {
+    expect(restDaysBetween(st({ max: 40, stallCount: 4 }).cal!)).toBe(1);
+    expect(nextWorkoutDate([mon6pm], 1)).toEqual(new Date(2026, 9, 21));
+  });
+  it("counts from the later of the previous workout's two cards", () => {
+    const tue7am = new Date(2026, 9, 20, 7, 0).toISOString();
+    expect(nextWorkoutDate([mon6pm, tue7am], 2)).toEqual(new Date(2026, 9, 23));
   });
 });
 

@@ -19,8 +19,7 @@ import {
 import { SpaceMono_400Regular } from "@expo-google-fonts/space-mono";
 import type { Standard, TrainingState } from "../engine/types";
 import { STANDARD_META } from "../engine/types";
-import { roundLb } from "../engine/shared";
-import { estCompletionLabel } from "../engine/progression";
+import { currentValue, estCompletionLabel } from "../engine/progression";
 import { StandardService } from "../services/StandardService";
 import { TrainingService } from "../services/TrainingService";
 import { SessionService } from "../services/SessionService";
@@ -145,6 +144,7 @@ function StandardCard({
 }) {
   const { standard, training } = row;
   const meta = STANDARD_META[standard.type];
+  const unit = meta.unit.toUpperCase();
   const [actionOpen, setActionOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -181,22 +181,22 @@ function StandardCard({
         <View style={styles.numCol}>
           <Text style={styles.numLabel}>START</Text>
           <Text style={styles.numValueMono}>
-            {standard.start}<Text style={styles.numUnit}> LB</Text>
+            {standard.start}<Text style={styles.numUnit}> {unit}</Text>
           </Text>
         </View>
         <View style={styles.numDivider} />
         <View style={styles.numCol}>
           <Text style={styles.numLabel}>CURRENT</Text>
           <Text style={[styles.numValueMono, styles.numAccent]}>
-            {training ? roundLb(training.trainingMax / 0.9) : standard.start}
-            <Text style={styles.numUnit}> LB</Text>
+            {currentValue(standard, training)}
+            <Text style={styles.numUnit}> {unit}</Text>
           </Text>
         </View>
         <View style={styles.numDivider} />
         <View style={styles.numCol}>
           <Text style={styles.numLabel}>TARGET</Text>
           <Text style={styles.numValueMono}>
-            {standard.target}<Text style={styles.numUnit}> LB</Text>
+            {standard.target}<Text style={styles.numUnit}> {unit}</Text>
           </Text>
         </View>
       </View>

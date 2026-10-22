@@ -22,6 +22,7 @@ import type { Standard, TrainingState } from "../engine/types";
 import { STANDARD_META } from "../engine/types";
 import { ENGINES } from "../engine/registry";
 import { cycleEndTM } from "../engine/progression";
+import { CalisthenicsService } from "../services/CalisthenicsService";
 import type { Session } from "../engine/shared";
 import { StandardService } from "../services/StandardService";
 import { TrainingService } from "../services/TrainingService";
@@ -43,7 +44,10 @@ export default function ExecuteScreen({ navigation, route }: any) {
   const [session, setSession] = useState<Session | null>(null);
   const [totalSessions, setTotalSessions] = useState(0);
   const [checked, setChecked] = useState<boolean[]>([]);
-  const [amrapReps, setAmrapReps] = useState<number | null>(null);
+  // Logged reps per set (only used for rep-logged sets); null = not entered yet
+  const [setReps, setSetReps] = useState<(number | null)[]>([]);
+  // Calisthenics strength block: vest load, editable each session
+  const [load, setLoad] = useState<number | null>(null);
 
   async function loadSession() {
     if (!standardId) return;
@@ -59,7 +63,9 @@ export default function ExecuteScreen({ navigation, route }: any) {
     setSession(sess);
     setTotalSessions(sessions.length);
     setChecked(Array(sess.sets?.length ?? 0).fill(false));
-    setAmrapReps(null);
+    // Endurance sets start at the target reps (lower it on a failed set); others must be entered.
+    setSetReps((sess.sets ?? []).map((set) => (sess.kind === "endurance" ? set.reps : null)));
+    setLoad(sess.kind === "strength" ? sess.sets?.[0]?.weight ?? 0 : null);
   }
 
   // Reload when params change (new GO → from Plan)
@@ -88,19 +94,29 @@ export default function ExecuteScreen({ navigation, route }: any) {
     );
   }
 
+  const isCal = standard.category === "calisthenics";
+  const isStrengthBlock = session.kind === "strength";
   const amrapSetIndex = session.sets?.findIndex((set) => set.amrap) ?? -1;
   const hasAmrap = amrapSetIndex !== -1;
+  const amrapReps = hasAmrap ? setReps[amrapSetIndex] : null;
   const allChecked = checked.length > 0 && checked.every(Boolean);
-  const amrapReady = !hasAmrap || amrapReps !== null;
+  const amrapReady = (session.sets ?? []).every((set, i) => !set.amrap || setReps[i] !== null);
   const canComplete = allChecked && amrapReady;
   const isLastSession = sessionIndex >= totalSessions - 1;
 
   function toggleSet(i: number) {
     const isAmrap = session!.sets?.[i]?.amrap === true;
-    if (isAmrap && amrapReps === null) return; // must enter reps first
+    if (isAmrap && setReps[i] === null) return; // must enter reps first
     const next = [...checked];
     next[i] = !next[i];
     setChecked(next);
+  }
+
+  function changeReps(i: number, delta: number) {
+    const cap = session!.sets?.[i]?.maxReps ?? Infinity;
+    const next = [...setReps];
+    next[i] = Math.min(cap, Math.max(0, (next[i] ?? 0) + delta));
+    setSetReps(next);
   }
 
   async function computeNextTM(): Promise<number> {
@@ -119,9 +135,15 @@ export default function ExecuteScreen({ navigation, route }: any) {
     if (!canComplete) return;
 
     const sets = session!.sets?.map((set, i) => ({
-      weight: set.weight,
-      reps: set.amrap ? (amrapReps ?? set.reps) : set.reps,
+      weight: isStrengthBlock && load !== null ? load : set.weight,
+      reps: set.amrap ? (setReps[i] ?? set.reps) : set.reps,
     }));
+
+    if (isCal) {
+      await CalisthenicsService.record(standard!, trainingState!, sessionIndex, sets);
+      navigation.navigate("Plan", { selectedId: standard!.id });
+      return;
+    }
 
     await SessionService.log(
       standard!.id,
@@ -156,9 +178,24 @@ export default function ExecuteScreen({ navigation, route }: any) {
         <Text style={s.subtitle}>
           {session.title.toUpperCase()} · W{trainingState.week} · C{trainingState.cycle}
         </Text>
+        {isCal && <Text style={s.subtitleNote}>{session.lines[0]}</Text>}
       </View>
 
       <ScrollView contentContainerStyle={s.list}>
+        {isStrengthBlock && load !== null && (
+          <View style={s.loadRow}>
+            <Text style={s.amrapLabel}>VEST LOAD:</Text>
+            <View style={s.amrapCounter}>
+              <TouchableOpacity style={s.amrapBtn} onPress={() => setLoad(Math.max(0, load - 5))}>
+                <Text style={s.amrapBtnText}>−</Text>
+              </TouchableOpacity>
+              <Text style={s.amrapNum}>{load} lb</Text>
+              <TouchableOpacity style={s.amrapBtn} onPress={() => setLoad(load + 5)}>
+                <Text style={s.amrapBtnText}>+</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
         {session.sets?.map((set, i) => {
           const isAmrap = set.amrap === true;
           const isChecked = checked[i] ?? false;
@@ -175,7 +212,7 @@ export default function ExecuteScreen({ navigation, route }: any) {
                 </View>
                 <View style={s.setInfo}>
                   <Text style={[s.setWeight, isAmrap && s.setWeightAmrap]}>
-                    {set.weight} lb
+                    {isCal ? (isStrengthBlock ? `${load} lb vest` : "Bodyweight") : `${set.weight} lb`}
                   </Text>
                   <Text style={[s.setLabel, isAmrap && s.setLabelAmrap]}>
                     SET {i + 1} · {isAmrap && !set.maxReps ? "AMRAP" : `${set.reps} REPS`}
@@ -189,20 +226,16 @@ export default function ExecuteScreen({ navigation, route }: any) {
                   <View style={s.amrapCounter}>
                     <TouchableOpacity
                       style={s.amrapBtn}
-                      onPress={() =>
-                        setAmrapReps(Math.max(0, (amrapReps ?? 0) - 1))
-                      }
+                      onPress={() => changeReps(i, -1)}
                     >
                       <Text style={s.amrapBtnText}>−</Text>
                     </TouchableOpacity>
                     <Text style={s.amrapNum}>
-                      {amrapReps !== null ? amrapReps : "—"}
+                      {setReps[i] !== null && setReps[i] !== undefined ? setReps[i] : "—"}
                     </Text>
                     <TouchableOpacity
                       style={s.amrapBtn}
-                      onPress={() =>
-                        setAmrapReps(Math.min(set.maxReps ?? Infinity, (amrapReps ?? 0) + 1))
-                      }
+                      onPress={() => changeReps(i, 1)}
                     >
                       <Text style={s.amrapBtnText}>+</Text>
                     </TouchableOpacity>
@@ -281,6 +314,20 @@ const s = StyleSheet.create({
     letterSpacing: 1.2,
     color: "#333",
     textTransform: "uppercase",
+  },
+  subtitleNote: {
+    fontFamily: "WorkSans_400Regular",
+    fontSize: 12,
+    color: "#555",
+    marginTop: 4,
+  },
+  loadRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 2,
+    borderColor: "#000",
+    padding: 14,
   },
   list: { padding: 14, gap: 10 },
   setCard: {

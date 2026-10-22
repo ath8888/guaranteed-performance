@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { TrainingState } from "../engine/types";
+import type { CalisthenicsState, TrainingState } from "../engine/types";
 
 const key = (standardId: string) => `training:${standardId}`;
 
@@ -17,8 +17,8 @@ export const TrainingService = {
     await AsyncStorage.removeItem(key(standardId));
   },
 
-  async init(standardId: string, trainingMax: number): Promise<TrainingState> {
-    const state: TrainingState = { standardId, trainingMax, cycle: 1, week: 1 };
+  async init(standardId: string, trainingMax: number, cal?: CalisthenicsState): Promise<TrainingState> {
+    const state: TrainingState = { standardId, trainingMax, cycle: 1, week: 1, ...(cal ? { cal } : {}) };
     await TrainingService.save(state);
     return state;
   },

@@ -36,6 +36,17 @@ function buildDataPoints(logs: SessionLog[]): DataPoint[] {
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
+// Calisthenics: plot the tested bodyweight max — Start, then each week 4 retest.
+function buildRetestPoints(standard: Standard, training: TrainingState | null): DataPoint[] {
+  const label = (iso: string) => {
+    const d = new Date(iso);
+    return `${d.getMonth() + 1}/${d.getDate()}`;
+  };
+  const start = { date: standard.createdAt, rm: standard.start, label: label(standard.createdAt) };
+  const retests = (training?.cal?.retests ?? []).map((r) => ({ date: r.date, rm: r.max, label: label(r.date) }));
+  return [start, ...retests];
+}
+
 interface Props {
   visible: boolean;
   onClose: () => void;
@@ -53,13 +64,13 @@ const IW = C_W - PAD_L - PAD_R;
 const IH = C_H - PAD_T - PAD_B;
 
 export default function ProgressChartModal({ visible, onClose, standard }: Props) {
-  const [points, setPoints] = useState<DataPoint[]>([]);
+  const [liftPoints, setLiftPoints] = useState<DataPoint[]>([]);
   const [training, setTraining] = useState<TrainingState | null>(null);
 
   useEffect(() => {
     if (visible && standard) {
       SessionService.getAll(standard.id).then((logs) => {
-        setPoints(buildDataPoints(logs));
+        setLiftPoints(buildDataPoints(logs));
       });
       TrainingService.get(standard.id).then(setTraining);
     }
@@ -68,6 +79,9 @@ export default function ProgressChartModal({ visible, onClose, standard }: Props
   if (!standard) return null;
 
   const meta = STANDARD_META[standard.type];
+  const isReps = meta.unit === "reps";
+  const unit = meta.unit.toUpperCase();
+  const points = isReps ? buildRetestPoints(standard, training) : liftPoints;
   const displayName = standard.name ?? meta.label;
   const hasData = points.length >= 2;
   const latestRM = points.length > 0 ? points[points.length - 1].rm : null;
@@ -118,7 +132,7 @@ export default function ProgressChartModal({ visible, onClose, standard }: Props
         <View style={s.header}>
           <View>
             <Text style={s.title}>{displayName.toUpperCase()}</Text>
-            <Text style={s.subtitle}>1RM PROGRESS</Text>
+            <Text style={s.subtitle}>{isReps ? "MAX REPS PROGRESS" : "1RM PROGRESS"}</Text>
           </View>
           <TouchableOpacity
             onPress={onClose}
@@ -132,7 +146,7 @@ export default function ProgressChartModal({ visible, onClose, standard }: Props
           <View style={s.empty}>
             <Text style={s.emptyTitle}>NO DATA YET</Text>
             <Text style={s.emptyHint}>
-              Complete main lift sessions to see your progress
+              {isReps ? "Complete a week 4 retest to see your progress" : "Complete main lift sessions to see your progress"}
             </Text>
           </View>
         ) : (
@@ -219,10 +233,10 @@ export default function ProgressChartModal({ visible, onClose, standard }: Props
             {/* Summary row */}
             <View style={s.statRow}>
               <View style={s.stat}>
-                <Text style={s.statLabel}>LATEST EST. 1RM</Text>
+                <Text style={s.statLabel}>{isReps ? "LATEST MAX" : "LATEST EST. 1RM"}</Text>
                 <Text style={s.statValue}>
                   {latestRM}
-                  <Text style={s.statUnit}> LB</Text>
+                  <Text style={s.statUnit}> {unit}</Text>
                 </Text>
               </View>
               <View style={s.statDivider} />
@@ -230,7 +244,7 @@ export default function ProgressChartModal({ visible, onClose, standard }: Props
                 <Text style={s.statLabel}>TARGET</Text>
                 <Text style={s.statValue}>
                   {standard.target}
-                  <Text style={s.statUnit}> LB</Text>
+                  <Text style={s.statUnit}> {unit}</Text>
                 </Text>
               </View>
             </View>

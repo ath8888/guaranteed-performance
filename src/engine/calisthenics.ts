@@ -4,7 +4,7 @@ import type { CalisthenicsState, SetActual, Standard, TrainingState } from "./ty
 
 // Calisthenics category (Push-ups): two blocks per workout, each with its own double progression.
 //   Strength  — 1 set of 5–8 reps to failure with a weight vest. 8 reps → +load, back to 5.
-//   Endurance — 3 sets at ~50% of max, 60s rest. 2 clean sessions in a row → +2 reps per set.
+//   Endurance — 3 sets at ~50% of max. 2 clean sessions in a row → +2 reps per set.
 //   Load and endurance reps never advance in the same workout (strength wins, endurance waits).
 //   Week 4 — retest the bodyweight max; resets endurance to 50% of the new max.
 //   Stalls — 2 retests in a row without improvement → +1 endurance set; 2 more → 3rd workout/week.
@@ -20,7 +20,6 @@ export const CALISTHENICS_CONFIG = {
   enduranceRepStep: 2,
   enduranceSets: 3,
   cleanSessionsToAdvance: 2,
-  restSec: 60,
   baseSessionsPerWeek: 2,
   stallsPerLever: 2,
   stalledNoteAt: 6,         // stalls after both levers are in use → show "Stalled" note
@@ -48,6 +47,19 @@ export function enduranceSetCount(c: CalisthenicsState, cfg: Config = CALISTHENI
 
 export function sessionsPerWeek(c: CalisthenicsState, cfg: Config = CALISTHENICS_CONFIG): number {
   return cfg.baseSessionsPerWeek + (c.stallCount >= cfg.stallsPerLever * 2 ? 1 : 0);
+}
+
+// Full rest days between workouts in a week: 2 when training 2×/week (Mon → Thu), 1 at 3×/week (Mon/Wed/Fri).
+export function restDaysBetween(c: CalisthenicsState, cfg: Config = CALISTHENICS_CONFIG): number {
+  return sessionsPerWeek(c, cfg) >= 3 ? 1 : 2;
+}
+
+// Day the next workout opens: the calendar day after the rest days following the previous workout's last card.
+export function nextWorkoutDate(prevDoneAt: string[], restDays: number): Date {
+  const last = new Date(Math.max(...prevDoneAt.map((d) => new Date(d).getTime())));
+  last.setHours(0, 0, 0, 0);
+  last.setDate(last.getDate() + restDays + 1);
+  return last;
 }
 
 export function isStalled(c: CalisthenicsState, cfg: Config = CALISTHENICS_CONFIG): boolean {
@@ -99,11 +111,10 @@ export function calisthenicsWeek(t: TrainingState, cfg: Config = CALISTHENICS_CO
     }));
     sessions.push({
       title: `Session ${LETTERS[n]} — Endurance`,
-      lines: [`${nSets} × ${c.enduranceReps} push-ups · rest ${cfg.restSec}s`],
+      lines: [`${nSets} × ${c.enduranceReps} push-ups`],
       sets: enduranceSets,
       kind: "endurance",
       sessionNo: n,
-      restSec: cfg.restSec,
       recommended: tier !== "strength",
       optional: tier === "strength",
     });

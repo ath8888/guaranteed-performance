@@ -14,9 +14,10 @@ import { CATEGORY_LABEL, STANDARD_META } from "../engine/types";
 import { StandardService } from "../services/StandardService";
 import { TrainingService } from "../services/TrainingService";
 import { initTrainingMax } from "../engine/progression";
+import { initCalState } from "../engine/calisthenics";
 
-const TYPES: StandardType[] = ["bench", "ohp", "squat", "deadlift", "olympic"];
-const CATEGORIES: StandardCategory[] = ["lifts", "olympic"];
+const TYPES: StandardType[] = ["bench", "ohp", "squat", "deadlift", "olympic", "pushups"];
+const CATEGORIES: StandardCategory[] = ["lifts", "olympic", "calisthenics"];
 
 interface Props {
   visible: boolean;
@@ -31,6 +32,7 @@ export default function AddStandardSheet({ visible, onClose, onAdded }: Props) {
   const [target, setTarget] = useState("");
   const [error, setError] = useState("");
   const nameRequired = type === "olympic";
+  const isReps = STANDARD_META[type].unit === "reps";
 
   function reset() {
     setType("bench");
@@ -54,7 +56,9 @@ export default function AddStandardSheet({ visible, onClose, onAdded }: Props) {
     const trimmedName = name.trim() || undefined;
     const standard = await StandardService.create(type, b, t, trimmedName);
     const tm = initTrainingMax(standard);
-    await TrainingService.init(standard.id, tm);
+    // Calisthenics: vest load starts at 0; the user sets it on the first strength session.
+    const cal = standard.category === "calisthenics" ? initCalState(b, 0) : undefined;
+    await TrainingService.init(standard.id, tm, cal);
     reset();
     onAdded();
   }
@@ -112,23 +116,23 @@ export default function AddStandardSheet({ visible, onClose, onAdded }: Props) {
           />
 
           {/* Inputs */}
-          <Text style={styles.label}>START (LB)</Text>
+          <Text style={styles.label}>{isReps ? "START (MAX REPS)" : "START (LB)"}</Text>
           <TextInput
             style={styles.input}
             keyboardType="number-pad"
             value={start}
             onChangeText={setStart}
-            placeholder="e.g. 200"
+            placeholder={isReps ? "e.g. 20" : "e.g. 200"}
             placeholderTextColor="#999"
           />
 
-          <Text style={styles.label}>TARGET (LB)</Text>
+          <Text style={styles.label}>{isReps ? "TARGET (MAX REPS)" : "TARGET (LB)"}</Text>
           <TextInput
             style={styles.input}
             keyboardType="number-pad"
             value={target}
             onChangeText={setTarget}
-            placeholder="e.g. 300"
+            placeholder={isReps ? "e.g. 50" : "e.g. 300"}
             placeholderTextColor="#999"
           />
 

@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import {
   useFonts,
@@ -26,6 +27,10 @@ import type { Session } from "../engine/shared";
 import { StandardService } from "../services/StandardService";
 import { TrainingService } from "../services/TrainingService";
 import { SessionService } from "../services/SessionService";
+import { CalisthenicsService } from "../services/CalisthenicsService";
+import { isStalled, nextWorkoutDate, restDaysBetween } from "../engine/calisthenics";
+
+const LAST_SELECTED_KEY = "plan:lastSelectedId";
 
 type WeekNum = 1 | 2 | 3 | 4;
 type SessionStatus = "done" | "today" | "upcoming";
@@ -35,6 +40,8 @@ interface CardData {
   sessionIndex: number;
   status: SessionStatus;
   canSkip: boolean;
+  skipped: boolean;
+  opensOn?: Date; // calisthenics: date a later workout becomes available
 }
 
 function buildCards(
@@ -48,18 +55,34 @@ function buildCards(
     week: viewedWeek,
   });
 
-  const isLogged = (idx: number) =>
-    logs.some(
+  const logFor = (idx: number) =>
+    logs.find(
       (l) =>
         l.cycle === state.cycle &&
         l.week === viewedWeek &&
         l.sessionIndex === idx
     );
-  // Optional work (BBB / FSL) can be skipped only once the week's required sessions are done.
+  const isLogged = (idx: number) => !!logFor(idx);
+  // Barbell optional work (BBB / FSL) can be skipped only once the week's required sessions are done.
+  // Calisthenics optional blocks can be skipped at any time.
+  const anytimeSkip = standard.category === "calisthenics";
   const requiredDone = sessions.every((sess, idx) => sess.optional || isLogged(idx));
+
+  // Calisthenics: workout B (and C) opens only after the previous workout's cards are done/skipped
+  // plus the rest days. Returns null when open, or the date it opens (undefined date = previous not done).
+  function lockedUntil(session: Session): { date?: Date } | null {
+    if (!state.cal || !session.sessionNo) return null;
+    const prev = sessions
+      .map((sess, i) => ({ sess, log: logFor(i) }))
+      .filter(({ sess }) => sess.sessionNo === session.sessionNo! - 1);
+    if (prev.some(({ log }) => !log)) return {};
+    const opens = nextWorkoutDate(prev.map(({ log }) => log!.completedAt), restDaysBetween(state.cal));
+    return new Date() < opens ? { date: opens } : null;
+  }
 
   return sessions.map((session, idx) => {
     let status: SessionStatus;
+    let opensOn: Date | undefined;
     if (viewedWeek < state.week) {
       status = "done";
     } else if (viewedWeek > state.week) {
@@ -68,11 +91,14 @@ function buildCards(
       if (isLogged(idx)) {
         status = "done";
       } else {
-        status = "today";
+        const lock = lockedUntil(session);
+        status = lock ? "upcoming" : "today";
+        opensOn = lock?.date;
       }
     }
-    const canSkip = !!session.optional && status === "today" && requiredDone;
-    return { session, sessionIndex: idx, status, canSkip };
+    const canSkip = !!session.optional && status === "today" && (anytimeSkip || requiredDone);
+    const skipped = !!logFor(idx)?.skipped;
+    return { session, sessionIndex: idx, status, canSkip, skipped, opensOn };
   });
 }
 
@@ -105,17 +131,24 @@ export default function PlanScreen({ navigation, route }: any) {
     );
     setStandards(active);
     if (active.length === 0) return;
-    const target =
-      preferredId && active.find((s) => s.id === preferredId)
-        ? preferredId
-        : active[0].id;
-    setSelectedId(target);
-    await loadForId(target);
+    // A standard passed in (returning from Execute) wins; otherwise reopen the last one viewed.
+    const remembered = await AsyncStorage.getItem(LAST_SELECTED_KEY).catch(() => null);
+    const target = [preferredId, remembered].find((id) => id && active.some((s) => s.id === id)) ?? active[0].id;
+    await handleSelectStandard(target);
   }
 
   useFocusEffect(
     useCallback(() => {
-      load(route.params?.selectedId);
+      const passed = route.params?.selectedId;
+      if (passed) {
+        // Remember it, then consume the param (this re-runs the effect, which loads the remembered one)
+        // so later tab visits reopen whatever was viewed last, not this stale param.
+        AsyncStorage.setItem(LAST_SELECTED_KEY, passed)
+          .catch(() => {})
+          .then(() => navigation.setParams({ selectedId: undefined }));
+        return;
+      }
+      load();
     }, [route.params?.selectedId])
   );
 
@@ -142,6 +175,7 @@ export default function PlanScreen({ navigation, route }: any) {
 
   async function handleSelectStandard(id: string) {
     setSelectedId(id);
+    AsyncStorage.setItem(LAST_SELECTED_KEY, id).catch(() => {});
     await loadForId(id);
   }
 
@@ -149,6 +183,12 @@ export default function PlanScreen({ navigation, route }: any) {
   // so finishing the week never rolls the cycle here — TM stays as is.
   async function handleSkip(card: CardData) {
     if (!selectedId || !trainingState) return;
+    if (selected!.category === "calisthenics") {
+      // Logged as skipped: counts toward finishing the week, no progression, streaks untouched.
+      await CalisthenicsService.record(selected!, trainingState, card.sessionIndex, undefined, true);
+      await loadForId(selectedId);
+      return;
+    }
     const sessionCount = ENGINES[selected!.type].buildWeek(selected!, trainingState).length;
     if (card.sessionIndex === sessionCount - 1) {
       await TrainingService.advanceWeek(selectedId, trainingState.trainingMax);
@@ -160,7 +200,8 @@ export default function PlanScreen({ navigation, route }: any) {
 
   const selected = standards.find((s) => s.id === selectedId) ?? null;
   const cards =
-    selected && trainingState
+    // Guard: right after switching standards, trainingState/logs still belong to the previous one
+    selected && trainingState && trainingState.standardId === selected.id
       ? buildCards(selected, trainingState, logs, viewedWeek)
       : [];
 
@@ -191,7 +232,10 @@ export default function PlanScreen({ navigation, route }: any) {
       {/* Week dots */}
       {trainingState && (
         <View style={s.weekRow}>
-          <Text style={s.cycleLabel}>CYCLE {trainingState.cycle}</Text>
+          <Text style={s.cycleLabel}>
+            CYCLE {trainingState.cycle}
+            {trainingState.cal && isStalled(trainingState.cal) ? " · STALLED" : ""}
+          </Text>
           <View style={s.dots}>
             {([1, 2, 3, 4] as WeekNum[]).map((w) => {
               const isDone = w < trainingState.week;
@@ -286,14 +330,25 @@ function SessionCard({
               isDone && cs.badgeTextInv,
             ]}
           >
-            {isToday ? "TODAY" : isDone ? "✓ DONE" : "UPCOMING"}
+            {isToday ? "TODAY" : card.skipped ? "SKIPPED" : isDone ? "✓ DONE" : "UPCOMING"}
           </Text>
         </View>
       </View>
 
       <View style={cs.sets}>
+        {session.recommended !== undefined && (
+          <Text style={[cs.tag, !session.recommended && cs.tagOptional]}>
+            {session.recommended ? "RECOMMENDED" : "OPTIONAL"}
+          </Text>
+        )}
+        {card.opensOn && (
+          <Text style={[cs.tag, cs.tagOptional]}>
+            OPENS {card.opensOn.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }).toUpperCase()}
+          </Text>
+        )}
         {session.lines.map((line, i) => {
-          const isAmrap = session.sets?.[i]?.amrap === true;
+          // Calisthenics endurance sets are logged too, but get no tag or highlight.
+          const isAmrap = session.sets?.[i]?.amrap === true && session.kind !== "endurance";
           // Capped rep-logged set (Olympic set 3): tagged on today and upcoming weeks.
           const isLogReps = isAmrap && !!session.sets?.[i]?.maxReps;
           return (
@@ -445,6 +500,14 @@ const cs = StyleSheet.create({
   },
   setLineDim: { color: "#bbb" },
   setLineAmrap: { color: "#0000FF" },
+  tag: {
+    fontFamily: "WorkSans_600SemiBold",
+    fontSize: 9,
+    letterSpacing: 1.5,
+    color: "#000",
+    marginBottom: 4,
+  },
+  tagOptional: { color: "#888" },
   btnRow: {
     flexDirection: "row",
     marginHorizontal: 10,
