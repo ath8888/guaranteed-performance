@@ -28,7 +28,7 @@ import { StandardService } from "../services/StandardService";
 import { TrainingService } from "../services/TrainingService";
 import { SessionService } from "../services/SessionService";
 import { CalisthenicsService } from "../services/CalisthenicsService";
-import { isStalled, nextWorkoutDate, restDaysBetween } from "../engine/calisthenics";
+import { cardLock, isStalled } from "../engine/calisthenics";
 
 const LAST_SELECTED_KEY = "plan:lastSelectedId";
 
@@ -68,16 +68,11 @@ function buildCards(
   const anytimeSkip = standard.category === "calisthenics";
   const requiredDone = sessions.every((sess, idx) => sess.optional || isLogged(idx));
 
-  // Calisthenics: workout B (and C) opens only after the previous workout's cards are done/skipped
-  // plus the rest days. Returns null when open, or the date it opens (undefined date = previous not done).
-  function lockedUntil(session: Session): { date?: Date } | null {
-    if (!state.cal || !session.sessionNo) return null;
-    const prev = sessions
-      .map((sess, i) => ({ sess, log: logFor(i) }))
-      .filter(({ sess }) => sess.sessionNo === session.sessionNo! - 1);
-    if (prev.some(({ log }) => !log)) return {};
-    const opens = nextWorkoutDate(prev.map(({ log }) => log!.completedAt), restDaysBetween(state.cal));
-    return new Date() < opens ? { date: opens } : null;
+  // Calisthenics: cards go in order, and each training day opens after its rest days.
+  // Returns null when open, or { date? } when locked (no date = an earlier card isn't done).
+  function lockedUntil(idx: number): { date?: Date } | null {
+    if (!state.cal) return null;
+    return cardLock(state.cal, sessions, idx, isLogged);
   }
 
   return sessions.map((session, idx) => {
@@ -91,7 +86,7 @@ function buildCards(
       if (isLogged(idx)) {
         status = "done";
       } else {
-        const lock = lockedUntil(session);
+        const lock = lockedUntil(idx);
         status = lock ? "upcoming" : "today";
         opensOn = lock?.date;
       }
@@ -347,8 +342,8 @@ function SessionCard({
           </Text>
         )}
         {session.lines.map((line, i) => {
-          // Calisthenics endurance sets are logged too, but get no tag or highlight.
-          const isAmrap = session.sets?.[i]?.amrap === true && session.kind !== "endurance";
+          // Calisthenics back-off sets are logged too, but get no tag or highlight.
+          const isAmrap = session.sets?.[i]?.amrap === true && session.kind !== "backoff";
           // Capped rep-logged set (Olympic set 3): tagged on today and upcoming weeks.
           const isLogReps = isAmrap && !!session.sets?.[i]?.maxReps;
           return (

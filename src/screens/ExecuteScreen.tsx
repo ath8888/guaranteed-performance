@@ -63,8 +63,8 @@ export default function ExecuteScreen({ navigation, route }: any) {
     setSession(sess);
     setTotalSessions(sessions.length);
     setChecked(Array(sess.sets?.length ?? 0).fill(false));
-    // Endurance sets start at the target reps (lower it on a failed set); others must be entered.
-    setSetReps((sess.sets ?? []).map((set) => (sess.kind === "endurance" ? set.reps : null)));
+    // Back-off sets start at the target reps (lower it on a short set); others must be entered.
+    setSetReps((sess.sets ?? []).map((set) => (sess.kind === "backoff" ? set.reps : null)));
     setLoad(sess.kind === "strength" ? sess.sets?.[0]?.weight ?? 0 : null);
   }
 

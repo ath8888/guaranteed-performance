@@ -14,7 +14,7 @@ import { CATEGORY_LABEL, STANDARD_META } from "../engine/types";
 import { StandardService } from "../services/StandardService";
 import { TrainingService } from "../services/TrainingService";
 import { initTrainingMax } from "../engine/progression";
-import { initCalState } from "../engine/calisthenics";
+import { CALISTHENICS_CONFIG, initCalState } from "../engine/calisthenics";
 
 const TYPES: StandardType[] = ["bench", "ohp", "squat", "deadlift", "olympic", "pushups"];
 const CATEGORIES: StandardCategory[] = ["lifts", "olympic", "calisthenics"];
@@ -56,8 +56,8 @@ export default function AddStandardSheet({ visible, onClose, onAdded }: Props) {
     const trimmedName = name.trim() || undefined;
     const standard = await StandardService.create(type, b, t, trimmedName);
     const tm = initTrainingMax(standard);
-    // Calisthenics: vest load starts at 0; the user sets it on the first strength session.
-    const cal = standard.category === "calisthenics" ? initCalState(b, 0) : undefined;
+    // Calisthenics: vest load starts at 15 lb; the user can change it on any strength session.
+    const cal = standard.category === "calisthenics" ? initCalState(b, CALISTHENICS_CONFIG.startLoad) : undefined;
     await TrainingService.init(standard.id, tm, cal);
     reset();
     onAdded();

@@ -36,15 +36,15 @@ function buildDataPoints(logs: SessionLog[]): DataPoint[] {
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
-// Calisthenics: plot the tested bodyweight max — Start, then each week 4 retest.
-function buildRetestPoints(standard: Standard, training: TrainingState | null): DataPoint[] {
+// Calisthenics: plot the bodyweight max — Start, then each endurance-day AMRAP.
+function buildMaxPoints(standard: Standard, training: TrainingState | null): DataPoint[] {
   const label = (iso: string) => {
     const d = new Date(iso);
     return `${d.getMonth() + 1}/${d.getDate()}`;
   };
   const start = { date: standard.createdAt, rm: standard.start, label: label(standard.createdAt) };
-  const retests = (training?.cal?.retests ?? []).map((r) => ({ date: r.date, rm: r.max, label: label(r.date) }));
-  return [start, ...retests];
+  const amraps = (training?.cal?.amraps ?? []).map((a) => ({ date: a.date, rm: a.reps, label: label(a.date) }));
+  return [start, ...amraps];
 }
 
 interface Props {
@@ -81,7 +81,7 @@ export default function ProgressChartModal({ visible, onClose, standard }: Props
   const meta = STANDARD_META[standard.type];
   const isReps = meta.unit === "reps";
   const unit = meta.unit.toUpperCase();
-  const points = isReps ? buildRetestPoints(standard, training) : liftPoints;
+  const points = isReps ? buildMaxPoints(standard, training) : liftPoints;
   const displayName = standard.name ?? meta.label;
   const hasData = points.length >= 2;
   const latestRM = points.length > 0 ? points[points.length - 1].rm : null;
@@ -146,7 +146,7 @@ export default function ProgressChartModal({ visible, onClose, standard }: Props
           <View style={s.empty}>
             <Text style={s.emptyTitle}>NO DATA YET</Text>
             <Text style={s.emptyHint}>
-              {isReps ? "Complete a week 4 retest to see your progress" : "Complete main lift sessions to see your progress"}
+              {isReps ? "Complete an endurance day to see your progress" : "Complete main lift sessions to see your progress"}
             </Text>
           </View>
         ) : (

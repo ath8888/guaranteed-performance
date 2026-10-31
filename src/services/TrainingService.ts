@@ -1,12 +1,21 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { CalisthenicsState, TrainingState } from "../engine/types";
+import { migrateCalState } from "../engine/calisthenics";
 
 const key = (standardId: string) => `training:${standardId}`;
 
 export const TrainingService = {
   async get(standardId: string): Promise<TrainingState | null> {
     const raw = await AsyncStorage.getItem(key(standardId));
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const state: TrainingState = JSON.parse(raw);
+    // One-time upgrade of push-up state saved before the weekly AMRAP formula (F15)
+    const migrated = migrateCalState(state);
+    if (migrated) {
+      await TrainingService.save(migrated);
+      return migrated;
+    }
+    return state;
   },
 
   async save(state: TrainingState): Promise<void> {

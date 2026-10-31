@@ -9,52 +9,57 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 );
 
 const pu: Standard = {
-  id: "p1", type: "pushups", category: "calisthenics", start: 40, target: 60,
+  id: "p1", type: "pushups", category: "calisthenics", start: 50, target: 60,
   createdAt: "2026-01-01", status: "active",
 };
 
-beforeEach(async () => {
-  await require("@react-native-async-storage/async-storage").clear();
-});
-
+const AsyncStorage = () => require("@react-native-async-storage/async-storage");
 const state = async () => (await TrainingService.get("p1"))!;
-const reps = (n: number, count: number) => Array.from({ length: count }, () => ({ reps: n }));
+
+beforeEach(async () => {
+  await AsyncStorage().clear();
+});
 
 describe("CalisthenicsService.record", () => {
   beforeEach(async () => {
-    await TrainingService.init("p1", 0, initCalState(40, 10));
+    await TrainingService.init("p1", 0, initCalState(50, 35));
   });
 
-  it("logs the card and saves progression (8 reps → +5 lb)", async () => {
-    await CalisthenicsService.record(pu, await state(), 0, [{ weight: 10, reps: 8 }]);
-    expect((await state()).cal!.load).toBe(15);
+  it("strength day: logs and saves progression (9 reps → +5 lb)", async () => {
+    await CalisthenicsService.record(pu, await state(), 0, [{ weight: 35, reps: 9 }]);
+    expect((await state()).cal!.load).toBe(40);
     expect(await SessionService.getAll("p1")).toHaveLength(1);
   });
 
-  it("skips are logged as skipped and don't progress", async () => {
-    await CalisthenicsService.record(pu, await state(), 1, undefined, true);
-    const [log] = await SessionService.getAll("p1");
-    expect(log.skipped).toBe(true);
-    expect((await state()).cal!.enduranceStreak).toBe(0);
-  });
-
-  it("week advances only after all 4 cards are completed or skipped", async () => {
-    await CalisthenicsService.record(pu, await state(), 0, [{ weight: 10, reps: 6 }]);
-    await CalisthenicsService.record(pu, await state(), 1, reps(20, 3));
-    await CalisthenicsService.record(pu, await state(), 2, undefined, true);
+  it("week advances after strength, AMRAP and back-off sets", async () => {
+    await CalisthenicsService.record(pu, await state(), 0, [{ weight: 35, reps: 7 }]);
+    await CalisthenicsService.record(pu, await state(), 1, [{ reps: 52 }]);
     expect((await state()).week).toBe(1);
-    await CalisthenicsService.record(pu, await state(), 3, reps(20, 3));
+    await CalisthenicsService.record(pu, await state(), 2, [{ reps: 21 }, { reps: 21 }]);
     const s = await state();
     expect(s.week).toBe(2);
-    expect(s.cal!.enduranceReps).toBe(22); // 2 clean endurance sessions in a row
+    expect(s.cal).toMatchObject({ max: 52, best: 52, stallCount: 0 });
   });
 
-  it("week 4 retest rolls into the next cycle with the new max", async () => {
-    await TrainingService.save({ ...(await state()), week: 4 });
-    await CalisthenicsService.record(pu, await state(), 0, [{ reps: 45 }]);
+  it("skipped back-off sets are logged as skipped and still finish the week", async () => {
+    await CalisthenicsService.record(pu, await state(), 0, [{ weight: 35, reps: 7 }]);
+    await CalisthenicsService.record(pu, await state(), 1, [{ reps: 48 }]);
+    await CalisthenicsService.record(pu, await state(), 2, undefined, true);
+    const logs = await SessionService.getAll("p1");
+    expect(logs[2].skipped).toBe(true);
+    expect((await state()).week).toBe(2);
+  });
+});
+
+describe("TrainingService upgrades old push-up state on read", () => {
+  it("converts and saves it once", async () => {
+    await AsyncStorage().setItem("training:p1", JSON.stringify({
+      standardId: "p1", trainingMax: 0, cycle: 1, week: 1,
+      cal: { max: 50, load: 35, enduranceReps: 25, enduranceStreak: 0, endurancePending: false, stallCount: 0, retests: [] },
+    }));
     const s = await state();
-    expect([s.cycle, s.week]).toEqual([2, 1]);
-    expect(s.cal!.max).toBe(45);
-    expect(s.cal!.enduranceReps).toBe(23);
+    expect(s.week).toBe(2);
+    expect(s.cal).toEqual({ max: 50, best: 50, load: 35, stallCount: 0, amraps: [] });
+    expect(JSON.parse(await AsyncStorage().getItem("training:p1")).cal.best).toBe(50);
   });
 });

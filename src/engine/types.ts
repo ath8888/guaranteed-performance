@@ -43,17 +43,16 @@ export interface TrainingState {
 }
 
 // Push-ups (calisthenics): Start / Current / Target are bodyweight max reps.
-// Weeks 1–3 train (strength + endurance block per session), week 4 is the max retest.
+// Each week: Strength day (vest AMRAP) + Endurance day (bodyweight AMRAP + back-off sets).
 export interface CalisthenicsState {
-  max: number;                // current true bodyweight max (Start, then each retest)
-  load: number;               // weight-vest load (lb) for the strength block
+  max: number;                // latest endurance AMRAP (Start until the first one)
+  best: number;               // best AMRAP so far — "improvement" means beating this
+  load: number;               // weight-vest load (lb) for the strength day
   lastStrengthReps?: number;  // reps logged on the most recent strength set
-  enduranceReps: number;      // reps per endurance set (50% of max at each retest, +2 on progression)
-  enduranceStreak: number;    // consecutive clean endurance sessions
-  endurancePending: boolean;  // +reps earned but deferred because the load increased that session
-  strengthAdvancedAt?: string; // session key ("cycle-week-session") of the last load increase
-  stallCount: number;         // consecutive retests without improvement (drives volume levers)
-  retests: { date: string; max: number }[];
+  stallCount: number;         // consecutive endurance days without a new best (drives volume levers)
+  amraps: { date: string; reps: number }[];
+  amrapWeek?: string;         // "cycle-week" of the latest AMRAP (back-off sets use it that week)
+  nextOpensAt?: string;       // ISO local midnight when the next training day's first card opens
 }
 
 export interface CheckIn {

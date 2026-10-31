@@ -32,7 +32,7 @@ When in doubt, ask before touching it.
 | Runtime | React 19.2.3, Node 20 (via fnm) |
 | Navigation | React Navigation v6 — **3 bottom tabs: Home / Plan / Execute** |
 | Storage | AsyncStorage (local, no backend) |
-| Plan engine | Wendler 5/3/1 + BBB (`strength.ts`), Olympic 5/3/1-style triples + FSL (`olympic.ts`) — via `registry.ts`, `progression.ts`, `shared.ts` |
+| Plan engine | Wendler 5/3/1 + BBB (`strength.ts`), Olympic 5/3/1-style triples + FSL (`olympic.ts`), Push-ups weekly AMRAP + back-off sets (`calisthenics.ts`) — via `registry.ts`, `progression.ts`, `shared.ts` |
 
 ## Dev environment (confirmed working)
 - **Phone:** Samsung SM-S911U, Expo Go SDK 57, connected via USB + WiFi LAN
