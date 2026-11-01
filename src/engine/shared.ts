@@ -35,7 +35,7 @@ export interface Session {
   lines: string[];
   sets?: PlannedSet[];
   amrap?: boolean;
-  kind?: "main" | "bbb" | "fsl" | "density" | "test" | "strength" | "endurance" | "backoff";
+  kind?: "main" | "bbb" |"density" | "test" | "strength" | "endurance" | "backoff";
   optional?: boolean; // supplemental work the user may SKIP
   recommended?: boolean; // calisthenics: block the plan currently emphasizes
   sessionNo?: number;  // calisthenics: training day within the week (0 = strength day, 1 = endurance day)

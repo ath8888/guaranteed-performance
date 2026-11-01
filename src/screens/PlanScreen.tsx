@@ -67,7 +67,7 @@ export function buildCards(
         l.sessionIndex === idx
     );
   const isLogged = (idx: number) => !!logFor(idx);
-  // Barbell optional work (BBB / FSL) can be skipped only once the week's required sessions are done.
+  // Barbell optional work (BBB) can be skipped only once the week's required sessions are done.
   // Calisthenics optional blocks can be skipped at any time.
   const anytimeSkip = standard.category === "calisthenics";
   const requiredDone = sessions.every((sess, idx) => sess.optional || isLogged(idx));

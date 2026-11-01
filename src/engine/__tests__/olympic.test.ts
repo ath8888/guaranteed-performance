@@ -39,9 +39,13 @@ describe("olympicWeek main sets (% of TM, all × 3)", () => {
   it("week 3: 75/85/95", () => {
     expect(weights(3)).toEqual([100, 115, 130]);
   });
-  it("week 4 deload: 40/50/60, main only", () => {
+  it("week 4 deload: 40/50/60", () => {
     expect(weights(4)).toEqual([55, 70, 80]);
-    expect(olympicWeek(4, TM)).toHaveLength(1);
+  });
+  it("every week is the main lift only", () => {
+    for (const w of [1, 2, 3, 4] as const) {
+      expect(olympicWeek(w, TM)).toHaveLength(1);
+    }
   });
   it("every main set is 3 reps", () => {
     for (const w of [1, 2, 3, 4] as const) {
@@ -55,18 +59,6 @@ describe("olympicWeek main sets (% of TM, all × 3)", () => {
       expect(sets[2].maxReps).toBe(3);
     }
     expect(olympicWeek(4, TM)[0].sets!.some((s) => s.amrap)).toBe(false);
-  });
-});
-
-describe("FSL supplemental", () => {
-  it("is optional 3 × 3 at the first-set weight", () => {
-    for (const w of [1, 2, 3] as const) {
-      const [main, fsl] = olympicWeek(w, TM);
-      expect(fsl.kind).toBe("fsl");
-      expect(fsl.optional).toBe(true);
-      expect(fsl.sets).toHaveLength(3);
-      expect(fsl.sets!.every((s) => s.reps === 3 && s.weight === main.sets![0].weight)).toBe(true);
-    }
   });
 });
 
@@ -115,10 +107,6 @@ describe("cycleEndTM: week 3 set 3 decides next cycle", () => {
   });
   it("ignores week 3 logs from other cycles", () => {
     expect(cycleEndTM(oly, state, [mainLog(1, 3, 3)])).toBe(135);
-  });
-  it("FSL logs (session 1) don't count", () => {
-    const fsl = { ...mainLog(2, 3, 3), sessionIndex: 1 };
-    expect(cycleEndTM(oly, state, [fsl, mainLog(2, 3, 1)])).toBe(135);
   });
 });
 

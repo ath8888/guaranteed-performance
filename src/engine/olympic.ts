@@ -1,7 +1,7 @@
 import { roundLb, type PlannedSet, type Session } from "./shared";
 import type { StandardEngine } from "./registry";
 
-// Olympic Lift category: 5/3/1-style waves, all triples (no all-out sets), optional FSL.
+// Olympic Lift category: 5/3/1-style waves, all triples (no all-out sets), main lift only.
 // Percentages are of the training max (TM = 90% of 1RM).
 const OLY_WAVE = {
   1: [0.65, 0.75, 0.85],
@@ -28,17 +28,7 @@ export function olympicWeek(week: 1 | 2 | 3 | 4, tm: number): Session[] {
     amrap: week !== 4,
     kind: "main",
   };
-  if (week === 4) return [main];
-  const fslWeight = roundLb(tm * pcts[0]);
-  const fslSets: PlannedSet[] = Array.from({ length: 3 }, () => ({ weight: fslWeight, reps: REPS }));
-  const fsl: Session = {
-    title: "First Set Last",
-    lines: [`3 × 3 @ ${fslWeight} lb`],
-    sets: fslSets,
-    kind: "fsl",
-    optional: true,
-  };
-  return [main, fsl];
+  return [main];
 }
 
 export const olympicEngine: StandardEngine = {
