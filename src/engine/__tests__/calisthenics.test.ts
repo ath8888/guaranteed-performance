@@ -115,7 +115,7 @@ describe("endurance day AMRAP", () => {
   it("new best → becomes Current and best, stalls reset, logged with date", () => {
     const c = apply(st({ stallCount: 3 }), "endurance", [{ reps: 52 }], false, THU_6PM);
     expect(c).toMatchObject({ max: 52, best: 52, stallCount: 0, amrapWeek: "1-1" });
-    expect(c.amraps).toEqual([{ date: THU_6PM.toISOString().slice(0, 10), reps: 52 }]);
+    expect(c.amraps).toEqual([{ date: THU_6PM.toISOString().slice(0, 10), reps: 52, cycle: 1 }]);
   });
   it("no new best → stall +1; Current still shows today's number", () => {
     const c = apply(st(), "endurance", [{ reps: 48 }]);
@@ -209,7 +209,7 @@ describe("estimated completion", () => {
   });
   it("estCompletionDate uses the push-up estimate", () => {
     const from = new Date("2026-01-01");
-    const d = estCompletionDate(pu, st(), from)!;
+    const d = estCompletionDate(pu, st(), [], from)!;
     expect(Math.round((d.getTime() - from.getTime()) / 86400000)).toBe(56);
   });
 });

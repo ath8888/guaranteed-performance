@@ -139,7 +139,7 @@ export function applyCalisthenicsResult(
     c.best = Math.max(c.best, reps);
     c.max = reps;
     c.amrapWeek = weekKey(t);
-    c.amraps.push({ date: today.toISOString().slice(0, 10), reps });
+    c.amraps.push({ date: today.toISOString().slice(0, 10), reps, cycle: t.cycle });
     return c;
   }
 
@@ -167,15 +167,26 @@ export function cardLock(
   return null;
 }
 
-// Weeks until the max reaches target (0 = reached): average weekly AMRAP gain once there are 2+,
+// CURRENT: best endurance AMRAP this cycle — only rises within a cycle, resets at cycle end.
+// Until this cycle's first AMRAP (or for entries saved before F16, which have no cycle) it's the latest max.
+export function calisthenicsCurrent(s: Standard, t: TrainingState): number {
+  const c = t.cal;
+  if (!c) return s.start;
+  const inCycle = c.amraps.filter((a) => a.cycle === t.cycle).map((a) => a.reps);
+  return inCycle.length ? Math.max(...inCycle) : c.max;
+}
+
+// Weeks until CURRENT reaches target (0 = reached): average weekly AMRAP gain once there are 2+,
 // otherwise (or if not improving) +10% of max per 4 weeks.
-export function calisthenicsWeeksToTarget(s: Standard, t: TrainingState, cfg: Config = CALISTHENICS_CONFIG): number {
+export function calisthenicsWeeksToTarget(
+  s: Standard, t: TrainingState, cfg: Config = CALISTHENICS_CONFIG, current = calisthenicsCurrent(s, t)
+): number {
   const c = t.cal!;
-  if (c.max >= s.target) return 0;
+  if (current >= s.target) return 0;
   const a = c.amraps;
   const avgGain = a.length >= 2 ? (a[a.length - 1].reps - a[0].reps) / (a.length - 1) : 0;
-  if (avgGain > 0) return Math.ceil((s.target - c.max) / avgGain);
-  const base = Math.max(c.max, 1);
+  if (avgGain > 0) return Math.ceil((s.target - current) / avgGain);
+  const base = Math.max(current, 1);
   const weeklyFactor = Math.pow(1 + cfg.defaultGainPer4Weeks, 1 / 4);
   return Math.max(1, Math.ceil(Math.log(s.target / base) / Math.log(weeklyFactor)));
 }
@@ -187,6 +198,10 @@ export const calisthenicsEngine: StandardEngine = {
   progressTrainingMax(s, current) { return current; },
   nextTM(s, currentTM) { return currentTM; },
   wavesToTarget() { return 0; },
-  currentValue(s, t) { return t.cal?.max ?? s.start; },
-  estWeeksToTarget(s, t) { return calisthenicsWeeksToTarget(s, t); },
+  currentValue(s, t) { return calisthenicsCurrent(s, t); },
+  // Counted from the start of the current week: once this week's AMRAP is in, gains start next week.
+  estWeeksToTarget(s, t, current) {
+    const weeks = calisthenicsWeeksToTarget(s, t, CALISTHENICS_CONFIG, current);
+    return weeks === 0 ? 0 : weeks + (t.cal?.amrapWeek === weekKey(t) ? 1 : 0);
+  },
 };

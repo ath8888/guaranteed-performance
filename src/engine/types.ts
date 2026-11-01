@@ -50,7 +50,7 @@ export interface CalisthenicsState {
   load: number;               // weight-vest load (lb) for the strength day
   lastStrengthReps?: number;  // reps logged on the most recent strength set
   stallCount: number;         // consecutive endurance days without a new best (drives volume levers)
-  amraps: { date: string; reps: number }[];
+  amraps: { date: string; reps: number; cycle?: number }[]; // cycle: added in F16 (older entries have none)
   amrapWeek?: string;         // "cycle-week" of the latest AMRAP (back-off sets use it that week)
   nextOpensAt?: string;       // ISO local midnight when the next training day's first card opens
 }

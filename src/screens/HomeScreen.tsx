@@ -17,7 +17,7 @@ import {
   WorkSans_600SemiBold,
 } from "@expo-google-fonts/work-sans";
 import { SpaceMono_400Regular } from "@expo-google-fonts/space-mono";
-import type { Standard, TrainingState } from "../engine/types";
+import type { SessionLog, Standard, TrainingState } from "../engine/types";
 import { STANDARD_META } from "../engine/types";
 import { currentValue, estCompletionLabel } from "../engine/progression";
 import { StandardService } from "../services/StandardService";
@@ -29,6 +29,7 @@ import ProgressChartModal from "../components/ProgressChartModal";
 interface Row {
   standard: Standard;
   training: TrainingState | null;
+  logs: SessionLog[];
 }
 
 export default function HomeScreen() {
@@ -50,6 +51,7 @@ export default function HomeScreen() {
       active.map(async (s) => ({
         standard: s,
         training: await TrainingService.get(s.id),
+        logs: await SessionService.getAll(s.id),
       }))
     );
     setRows(rowData);
@@ -142,7 +144,7 @@ function StandardCard({
   onDelete: () => void;
   onOpenChart: () => void;
 }) {
-  const { standard, training } = row;
+  const { standard, training, logs } = row;
   const meta = STANDARD_META[standard.type];
   const unit = meta.unit.toUpperCase();
   const [actionOpen, setActionOpen] = useState(false);
@@ -188,7 +190,7 @@ function StandardCard({
         <View style={styles.numCol}>
           <Text style={styles.numLabel}>CURRENT</Text>
           <Text style={[styles.numValueMono, styles.numAccent]}>
-            {currentValue(standard, training)}
+            {currentValue(standard, training, logs)}
             <Text style={styles.numUnit}> {unit}</Text>
           </Text>
         </View>
@@ -202,7 +204,7 @@ function StandardCard({
       </View>
       <View style={styles.etaRow}>
         <Text style={styles.etaLabel}>ESTIMATED COMPLETION DATE</Text>
-        <Text style={styles.etaValue}>{estCompletionLabel(standard, training)}</Text>
+        <Text style={styles.etaValue}>{estCompletionLabel(standard, training, logs)}</Text>
       </View>
 
       {actionOpen && (

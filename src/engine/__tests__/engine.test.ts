@@ -135,18 +135,18 @@ describe("estCompletionDate", () => {
   const state = (trainingMax: number, week: 1 | 2 | 3 | 4) => ({ standardId: "x", trainingMax, cycle: 1, week });
 
   it("returns null when target already met", () => {
-    expect(estCompletionDate(bench, state(270, 2), from)).toBeNull();
+    expect(estCompletionDate(bench, state(270, 2), [], from)).toBeNull();
   });
   it("bench at week 1: finish this cycle + 4 weeks per further wave", () => {
     // 18 waves → 4 + 17×4 = 72 weeks = 504 days
-    expect(daysFrom(estCompletionDate(bench, state(180, 1), from)!)).toBe(504);
+    expect(daysFrom(estCompletionDate(bench, state(180, 1), [], from)!)).toBe(504);
   });
   it("squat mid-cycle (week 3) counts only the weeks left in this cycle", () => {
     // 9 waves → 2 + 8×4 = 34 weeks = 238 days
-    expect(daysFrom(estCompletionDate(squat, state(270, 3), from)!)).toBe(238);
+    expect(daysFrom(estCompletionDate(squat, state(270, 3), [], from)!)).toBe(238);
   });
   it("last wave during deload week completes in 1 week", () => {
     // TM 265 → 1 wave; week 4 → 1 week = 7 days
-    expect(daysFrom(estCompletionDate(bench, state(265, 4), from)!)).toBe(7);
+    expect(daysFrom(estCompletionDate(bench, state(265, 4), [], from)!)).toBe(7);
   });
 });

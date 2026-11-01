@@ -66,11 +66,13 @@ const IH = C_H - PAD_T - PAD_B;
 export default function ProgressChartModal({ visible, onClose, standard }: Props) {
   const [liftPoints, setLiftPoints] = useState<DataPoint[]>([]);
   const [training, setTraining] = useState<TrainingState | null>(null);
+  const [logs, setLogs] = useState<SessionLog[]>([]);
 
   useEffect(() => {
     if (visible && standard) {
       SessionService.getAll(standard.id).then((logs) => {
         setLiftPoints(buildDataPoints(logs));
+        setLogs(logs);
       });
       TrainingService.get(standard.id).then(setTraining);
     }
@@ -253,7 +255,7 @@ export default function ProgressChartModal({ visible, onClose, standard }: Props
 
         <View style={s.etaRow}>
           <Text style={s.etaLabel}>ESTIMATED COMPLETION DATE</Text>
-          <Text style={s.etaValue}>{estCompletionLabel(standard, training)}</Text>
+          <Text style={s.etaValue}>{estCompletionLabel(standard, training, logs)}</Text>
         </View>
       </View>
     </Modal>

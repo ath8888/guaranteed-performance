@@ -129,7 +129,7 @@ describe("olympic estimated completion", () => {
   });
   it("date: 4 + 8×4 = 36 weeks from week 1", () => {
     const from = new Date("2026-01-01");
-    const d = estCompletionDate(oly, { standardId: "o1", trainingMax: TM, cycle: 1, week: 1 }, from)!;
+    const d = estCompletionDate(oly, { standardId: "o1", trainingMax: TM, cycle: 1, week: 1 }, [], from)!;
     expect(Math.round((d.getTime() - from.getTime()) / 86400000)).toBe(252);
   });
 });

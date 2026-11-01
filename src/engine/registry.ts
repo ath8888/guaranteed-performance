@@ -9,7 +9,7 @@ export interface StandardEngine {
   wavesToTarget(s: Standard, trainingMax: number): number;
   // Optional overrides for engines not driven by a barbell training max (e.g. calisthenics)
   currentValue?(s: Standard, t: TrainingState): number;
-  estWeeksToTarget?(s: Standard, t: TrainingState): number; // 0 = target reached
+  estWeeksToTarget?(s: Standard, t: TrainingState, current: number): number; // from the start of the current week; 0 = target reached
 }
 
 import { strengthEngine } from "./strength";

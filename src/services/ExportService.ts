@@ -9,10 +9,10 @@ export interface ExportData {
 }
 
 // ISO date (no commas, safe for CSV); "Reached" when target met; blank if no training state.
-function exportEstCompletion(s: Standard, training: TrainingState[]): string {
-  const t = training.find((x) => x.standardId === s.id);
+function exportEstCompletion(s: Standard, data: ExportData): string {
+  const t = data.training.find((x) => x.standardId === s.id);
   if (!t) return "";
-  const d = estCompletionDate(s, t);
+  const d = estCompletionDate(s, t, data.sessions.filter((l) => l.standardId === s.id));
   return d ? d.toISOString().slice(0, 10) : "Reached";
 }
 
@@ -26,7 +26,7 @@ export const ExportService = {
     for (const s of data.standards) {
       const meta = STANDARD_META[s.type];
       lines.push(
-        `| ${meta.label} | ${s.start} ${meta.unit} | ${s.target} ${meta.unit} | ${exportEstCompletion(s, data.training)} | ${s.status} |`
+        `| ${meta.label} | ${s.start} ${meta.unit} | ${s.target} ${meta.unit} | ${exportEstCompletion(s, data)} | ${s.status} |`
       );
     }
     lines.push("");
@@ -62,7 +62,7 @@ export const ExportService = {
     lines.push("Lift,Baseline (lb),Target (lb),Estimated Completion Date,Status");
     for (const s of data.standards) {
       const meta = STANDARD_META[s.type];
-      lines.push(`${meta.label},${s.start},${s.target},${exportEstCompletion(s, data.training)},${s.status}`);
+      lines.push(`${meta.label},${s.start},${s.target},${exportEstCompletion(s, data)},${s.status}`);
     }
     lines.push("");
 
