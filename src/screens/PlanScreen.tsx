@@ -20,7 +20,7 @@ import {
 } from "@expo-google-fonts/work-sans";
 import { SpaceMono_400Regular } from "@expo-google-fonts/space-mono";
 
-import type { Standard, SessionLog, TrainingState } from "../engine/types";
+import type { Standard, SessionLog, SetActual, TrainingState } from "../engine/types";
 import { STANDARD_META } from "../engine/types";
 import { ENGINES } from "../engine/registry";
 import type { Session } from "../engine/shared";
@@ -42,9 +42,13 @@ interface CardData {
   canSkip: boolean;
   skipped: boolean;
   opensOn?: Date; // calisthenics: date a later workout becomes available
+  loggedLines?: string[]; // done cards: what was actually logged, shown instead of the prescription
 }
 
-function buildCards(
+const loggedLine = (set: SetActual) =>
+  set.weight ? `${set.weight} lb × ${set.reps}` : `${set.reps} reps`;
+
+export function buildCards(
   standard: Standard,
   state: TrainingState,
   logs: SessionLog[],
@@ -92,8 +96,15 @@ function buildCards(
       }
     }
     const canSkip = !!session.optional && status === "today" && (anytimeSkip || requiredDone);
-    const skipped = !!logFor(idx)?.skipped;
-    return { session, sessionIndex: idx, status, canSkip, skipped, opensOn };
+    // Also covers barbell skips from before they were logged: a past week can only be
+    // passed with an optional card unlogged if that card was skipped.
+    const skipped =
+      !!logFor(idx)?.skipped || (!!session.optional && viewedWeek < state.week && !isLogged(idx));
+    // The engine rebuilds sessions from the current state, which moves on after logging.
+    const log = logFor(idx);
+    const loggedLines =
+      status === "done" && !skipped && log?.sets?.length ? log.sets.map(loggedLine) : undefined;
+    return { session, sessionIndex: idx, status, canSkip, skipped, opensOn, loggedLines };
   });
 }
 
@@ -184,6 +195,8 @@ export default function PlanScreen({ navigation, route }: any) {
       await loadForId(selectedId);
       return;
     }
+    // Logged as skipped so the card shows SKIPPED, not DONE, once the week is past.
+    await SessionService.log(selectedId, trainingState.cycle, trainingState.week, card.sessionIndex, undefined, true);
     const sessionCount = ENGINES[selected!.type].buildWeek(selected!, trainingState).length;
     if (card.sessionIndex === sessionCount - 1) {
       await TrainingService.advanceWeek(selectedId, trainingState.trainingMax);
@@ -331,7 +344,7 @@ function SessionCard({
       </View>
 
       <View style={cs.sets}>
-        {session.recommended !== undefined && (
+        {session.recommended !== undefined && !isDone && (
           <Text style={[cs.tag, !session.recommended && cs.tagOptional]}>
             {session.recommended ? "RECOMMENDED" : "OPTIONAL"}
           </Text>
@@ -341,7 +354,7 @@ function SessionCard({
             OPENS {card.opensOn.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }).toUpperCase()}
           </Text>
         )}
-        {session.lines.map((line, i) => {
+        {(card.loggedLines ?? session.lines).map((line, i) => {
           // Calisthenics back-off sets are logged too, but get no tag or highlight.
           const isAmrap = session.sets?.[i]?.amrap === true && session.kind !== "backoff";
           // Capped rep-logged set (Olympic set 3): tagged on today and upcoming weeks.

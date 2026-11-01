@@ -132,6 +132,18 @@ describe("SessionService", () => {
     expect((await SessionService.getAll("bench-1"))).toHaveLength(2);
   });
 
+  // BUG-1: Plan's barbell SKIP logs the optional card as skipped, then advances the week.
+  it("barbell skip: optional card logged as skipped, week advances", async () => {
+    await TrainingService.init("bench-1", 180);
+    const t = (await TrainingService.get("bench-1"))!;
+    await SessionService.log("bench-1", t.cycle, t.week, 1, undefined, true);
+    await TrainingService.advanceWeek("bench-1", t.trainingMax);
+    const [log] = await SessionService.getAll("bench-1");
+    expect(log).toMatchObject({ cycle: 1, week: 1, sessionIndex: 1, skipped: true });
+    expect(log.sets).toBeUndefined();
+    expect((await TrainingService.get("bench-1"))!.week).toBe(2);
+  });
+
   it("removeAll clears sessions", async () => {
     await SessionService.log("bench-1", 1, 1, 0);
     await SessionService.removeAll("bench-1");
