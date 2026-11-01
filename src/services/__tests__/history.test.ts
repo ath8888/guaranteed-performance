@@ -92,3 +92,15 @@ describe("calendar helpers", () => {
     expect(groups[0].entries.map((e) => e.title)).toEqual(["Boring But Big", "Main lift"]);
   });
 });
+
+describe("sessionTitle — run (F23)", () => {
+  const run3: Standard = {
+    id: "run3-1", type: "run3", category: "run", start: 1440, target: 1320,
+    createdAt: "2026-11-01T00:00:00.000Z", status: "active",
+  };
+  it("A · B · A, week 4 Time Trial first", () => {
+    expect([0, 1, 2].map((i) => sessionTitle(run3, log(run3, i, "x"))))
+      .toEqual(["Session A — Threshold + Speed", "Session B — Zone 2", "Session A — Threshold + Speed"]);
+    expect(sessionTitle(run3, log(run3, 0, "x", { week: 4 }))).toBe("Session A — Time Trial");
+  });
+});

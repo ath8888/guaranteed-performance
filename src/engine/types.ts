@@ -79,8 +79,8 @@ export interface CheckIn {
   date: string;
 }
 
-// Run: time = split or race time (s), pace = s/mi, minutes = duration run
-export interface SetActual { weight?: number; reps?: number; time?: number; pace?: number; minutes?: number }
+// Run: time = split or race time (s) over distance (m), pace = s/mi, minutes = duration run, part = speed rep / time trial
+export interface SetActual { weight?: number; reps?: number; time?: number; distance?: number; pace?: number; minutes?: number; part?: "speed" | "trial" }
 
 export interface SessionLog {
   id: string;

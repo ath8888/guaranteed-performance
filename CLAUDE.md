@@ -32,7 +32,7 @@ When in doubt, ask before touching it.
 | Runtime | React 19.2.3, Node 20 (via fnm) |
 | Navigation | React Navigation v6 — **3 bottom tabs: Home / Execute / History** (Execute tab = native stack: Plan screen → Session screen, F18; History F19) |
 | Storage | AsyncStorage (local, no backend) |
-| Plan engine | Wendler 5/3/1 + BBB (`strength.ts`), Olympic 5/3/1-style triples (`olympic.ts`), Push-ups weekly AMRAP + back-off sets (`calisthenics.ts`) — via `registry.ts`, `progression.ts`, `shared.ts` |
+| Plan engine | Wendler 5/3/1 + BBB (`strength.ts`), Olympic 5/3/1-style triples (`olympic.ts`), Push-ups weekly AMRAP + back-off sets (`calisthenics.ts`), Run pace ladder (`run.ts`) — via `registry.ts`, `progression.ts`, `shared.ts` |
 
 ## Dev environment (confirmed working)
 - **Phone:** Samsung SM-S911U, Expo Go SDK 57, connected via USB + WiFi LAN
@@ -46,7 +46,7 @@ When in doubt, ask before touching it.
 ---
 
 ## Scope (v1 — do not expand without asking)
-- **Standards:** Lifts (Bench, OHP, Squat, Deadlift), Olympic Lift (one generic type, user names it), Calisthenics (Push-ups). Run/pullups excluded.
+- **Standards:** Lifts (Bench, OHP, Squat, Deadlift), Olympic Lift (one generic type, user names it), Calisthenics (Push-ups), Run (800m, 1.5 / 3 / 5 mile). Pull-ups excluded.
 - **Progression is per category:** every type in a category uses the same engine. MVP shipped 2026-10-21; v1 started with F12.
 - **4 screens, 3 tabs:** Home tab; Execute tab holds Plan (week view) → GO → Session (set logging); History tab (LIST | CALENDAR of completed workouts). No Setup tab.
 - **Deleting a standard keeps its session logs** (standard remembered under `deletedStandards`) so History stays complete.

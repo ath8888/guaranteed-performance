@@ -29,6 +29,8 @@ import { TrainingService } from "../services/TrainingService";
 import { SessionService } from "../services/SessionService";
 import { CalisthenicsService } from "../services/CalisthenicsService";
 import { cardLock, isStalled } from "../engine/calisthenics";
+import { RunService } from "../services/RunService";
+import { fmtDistance, fmtPace, fmtTime, speedRepText } from "../engine/run";
 
 const LAST_SELECTED_KEY = "plan:lastSelectedId";
 
@@ -43,10 +45,17 @@ interface CardData {
   skipped: boolean;
   opensOn?: Date; // calisthenics: date a later workout becomes available
   loggedLines?: string[]; // done cards: what was actually logged, shown instead of the prescription
+  badgeToday: boolean; // run: only the first open card shows TODAY (the others stay open: GO / SKIP)
 }
 
-export const loggedLine = (set: SetActual) =>
-  set.weight ? `${set.weight} lb × ${set.reps}` : `${set.reps} reps`;
+export const loggedLine = (set: SetActual) => {
+  if (Object.keys(set).length === 0) return "Not done"; // run rep left unchecked
+  // Run: split / race time over a distance, or minutes (with pace when logged)
+  if (set.part === "speed" && set.distance && set.time != null) return speedRepText(set.distance, set.time);
+  if (set.time != null) return set.distance ? `${fmtDistance(set.distance)} · ${fmtTime(set.time)}` : fmtTime(set.time);
+  if (set.minutes != null) return set.pace != null ? `${set.minutes} min @ ${fmtPace(set.pace)}` : `${set.minutes} min`;
+  return set.weight ? `${set.weight} lb × ${set.reps}` : `${set.reps} reps`;
+};
 
 export function buildCards(
   standard: Standard,
@@ -68,8 +77,8 @@ export function buildCards(
     );
   const isLogged = (idx: number) => !!logFor(idx);
   // Barbell optional work (BBB) can be skipped only once the week's required sessions are done.
-  // Calisthenics optional blocks can be skipped at any time.
-  const anytimeSkip = standard.category === "calisthenics";
+  // Calisthenics optional blocks and every run card can be skipped at any time.
+  const anytimeSkip = standard.category === "calisthenics" || standard.category === "run";
   const requiredDone = sessions.every((sess, idx) => sess.optional || isLogged(idx));
 
   // Calisthenics: cards go in order, and each training day opens after its rest days.
@@ -79,7 +88,7 @@ export function buildCards(
     return cardLock(state.cal, sessions, idx, isLogged);
   }
 
-  return sessions.map((session, idx) => {
+  const cards: CardData[] = sessions.map((session, idx) => {
     let status: SessionStatus;
     let opensOn: Date | undefined;
     if (viewedWeek < state.week) {
@@ -104,8 +113,13 @@ export function buildCards(
     const log = logFor(idx);
     const loggedLines =
       status === "done" && !skipped && log?.sets?.length ? log.sets.map(loggedLine) : undefined;
-    return { session, sessionIndex: idx, status, canSkip, skipped, opensOn, loggedLines };
+    return { session, sessionIndex: idx, status, canSkip, skipped, opensOn, loggedLines, badgeToday: status === "today" };
   });
+  if (standard.category === "run") {
+    const first = cards.findIndex((c) => c.status === "today");
+    cards.forEach((c, i) => { c.badgeToday = i === first; });
+  }
+  return cards;
 }
 
 export default function PlanScreen({ navigation, route }: any) {
@@ -208,6 +222,12 @@ export default function PlanScreen({ navigation, route }: any) {
     if (selected!.category === "calisthenics") {
       // Logged as skipped: counts toward finishing the week, no progression, streaks untouched.
       await CalisthenicsService.record(selected!, trainingState, card.sessionIndex, undefined, true);
+      await loadForId(selectedId);
+      return;
+    }
+    if (selected!.category === "run") {
+      // Logged as skipped: counts toward finishing the week; ladder counter untouched.
+      await RunService.record(selected!, trainingState, card.sessionIndex, undefined, true);
       await loadForId(selectedId);
       return;
     }
@@ -359,18 +379,18 @@ function SessionCard({
         <View
           style={[
             cs.badge,
-            isToday && cs.badgeToday,
+            card.badgeToday && cs.badgeToday,
             isDone && cs.badgeDone,
           ]}
         >
           <Text
             style={[
               cs.badgeText,
-              isToday && cs.badgeTextInv,
+              card.badgeToday && cs.badgeTextInv,
               isDone && cs.badgeTextInv,
             ]}
           >
-            {isToday ? "TODAY" : card.skipped ? "SKIPPED" : isDone ? "✓ DONE" : "UPCOMING"}
+            {card.badgeToday ? "TODAY" : card.skipped ? "SKIPPED" : isDone ? "✓ DONE" : "UPCOMING"}
           </Text>
         </View>
       </View>

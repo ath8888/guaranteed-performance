@@ -12,6 +12,7 @@ import type { SessionLog, Standard, TrainingState } from "../engine/types";
 import { STANDARD_META } from "../engine/types";
 import { estimate1RM } from "../engine/shared";
 import { estCompletionLabel } from "../engine/progression";
+import { fmtTime } from "../engine/run";
 import { SessionService } from "../services/SessionService";
 import { TrainingService } from "../services/TrainingService";
 
@@ -45,6 +46,14 @@ function buildMaxPoints(standard: Standard, training: TrainingState | null): Dat
   const start = { date: standard.createdAt, rm: standard.start, label: label(standard.createdAt) };
   const amraps = (training?.cal?.amraps ?? []).map((a) => ({ date: a.date, rm: a.reps, label: label(a.date) }));
   return [start, ...amraps];
+}
+
+// Run: plot CURRENT race time — Start, then each change (ladder steps, time trials).
+function buildTimePoints(training: TrainingState | null): DataPoint[] {
+  return (training?.run?.points ?? []).map((p) => {
+    const d = new Date(p.date);
+    return { date: p.date, rm: Math.round(p.current), label: `${d.getMonth() + 1}/${d.getDate()}` };
+  });
 }
 
 interface Props {
@@ -82,8 +91,11 @@ export default function ProgressChartModal({ visible, onClose, standard }: Props
 
   const meta = STANDARD_META[standard.type];
   const isReps = meta.unit === "reps";
+  const isTime = meta.kind === "time"; // lower is better: axis flipped so faster sits higher
   const unit = meta.unit.toUpperCase();
-  const points = isReps ? buildMaxPoints(standard, training) : liftPoints;
+  const unitText = isTime ? "" : ` ${unit}`;
+  const fmt = (v: number) => (isTime ? fmtTime(v) : String(v));
+  const points = isTime ? buildTimePoints(training) : isReps ? buildMaxPoints(standard, training) : liftPoints;
   const displayName = standard.name ?? meta.label;
   const hasData = points.length >= 2;
   const latestRM = points.length > 0 ? points[points.length - 1].rm : null;
@@ -99,6 +111,7 @@ export default function ProgressChartModal({ visible, onClose, standard }: Props
     return PAD_L + (points.length <= 1 ? IW / 2 : (i / (points.length - 1)) * IW);
   }
   function cy(v: number): number {
+    if (isTime) return PAD_T + ((v - yMin) / yRange) * IH;
     return PAD_T + IH - ((v - yMin) / yRange) * IH;
   }
 
@@ -134,7 +147,7 @@ export default function ProgressChartModal({ visible, onClose, standard }: Props
         <View style={s.header}>
           <View>
             <Text style={s.title}>{displayName.toUpperCase()}</Text>
-            <Text style={s.subtitle}>{isReps ? "MAX REPS PROGRESS" : "1RM PROGRESS"}</Text>
+            <Text style={s.subtitle}>{isTime ? "RACE TIME PROGRESS" : isReps ? "MAX REPS PROGRESS" : "1RM PROGRESS"}</Text>
           </View>
           <TouchableOpacity
             onPress={onClose}
@@ -148,7 +161,9 @@ export default function ProgressChartModal({ visible, onClose, standard }: Props
           <View style={s.empty}>
             <Text style={s.emptyTitle}>NO DATA YET</Text>
             <Text style={s.emptyHint}>
-              {isReps ? "Complete an endurance day to see your progress" : "Complete main lift sessions to see your progress"}
+              {isTime
+                ? "Log Session A or a time trial to see your progress"
+                : isReps ? "Complete an endurance day to see your progress" : "Complete main lift sessions to see your progress"}
             </Text>
           </View>
         ) : (
@@ -180,7 +195,7 @@ export default function ProgressChartModal({ visible, onClose, standard }: Props
                       textAnchor="end"
                       fontSize={9} fill="#555"
                     >
-                      {v}
+                      {fmt(v)}
                     </SvgText>
                   </G>
                 ))}
@@ -235,18 +250,18 @@ export default function ProgressChartModal({ visible, onClose, standard }: Props
             {/* Summary row */}
             <View style={s.statRow}>
               <View style={s.stat}>
-                <Text style={s.statLabel}>{isReps ? "LATEST MAX" : "LATEST EST. 1RM"}</Text>
+                <Text style={s.statLabel}>{isTime ? "LATEST TIME" : isReps ? "LATEST MAX" : "LATEST EST. 1RM"}</Text>
                 <Text style={s.statValue}>
-                  {latestRM}
-                  <Text style={s.statUnit}> {unit}</Text>
+                  {latestRM !== null ? fmt(latestRM) : null}
+                  <Text style={s.statUnit}>{unitText}</Text>
                 </Text>
               </View>
               <View style={s.statDivider} />
               <View style={s.stat}>
                 <Text style={s.statLabel}>TARGET</Text>
                 <Text style={s.statValue}>
-                  {standard.target}
-                  <Text style={s.statUnit}> {unit}</Text>
+                  {fmt(standard.target)}
+                  <Text style={s.statUnit}>{unitText}</Text>
                 </Text>
               </View>
             </View>

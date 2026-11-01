@@ -1,7 +1,11 @@
 import {
   RUN_CONFIG,
   applyRunResult,
+  fmtDistance,
   fmtTime,
+  fmtTimeDigits,
+  parseTime,
+  runSessionTitle,
   initRunState,
   runPaces,
   runWeek,
@@ -87,12 +91,12 @@ describe("weekly plan", () => {
       "zone2:Session B — Zone 2",
       "intervals:Session A — Speed + Threshold",
     ]);
-    expect(w.every((x) => x.recommended && !x.optional)).toBe(true);
+    expect(w.every((x) => x.optional && x.recommended === undefined)).toBe(true); // SKIP on every card, no tag
   });
   it("800M W1 card: 6 × 200m in 0:40, then 2 × 3 min @ 6:44/mi; Zone 2 25 min", () => {
     const [a, b] = runWeek(r800, st(r800));
     expect(a.lines).toEqual([
-      "6 × 200m in 0:40 · 1:00 jog",
+      "6 × 200m @ 5:22/mi in 0:40secs · 1:00 jog",
       "2 × 3 min @ 6:44/mi · 1:00 jog",
       "10 min easy warm-up + cool-down",
     ]);
@@ -111,7 +115,7 @@ describe("weekly plan", () => {
   it(">1.5 mi: Threshold + Speed, threshold reps are the ladder; 7-min reps get 1:30 rest", () => {
     const a = intervals(r3, st(r3, {}, 3));
     expect(a.title).toBe("Session A — Threshold + Speed");
-    expect(a.lines.slice(0, 2)).toEqual(["4 × 7 min @ 8:00/mi · 1:30 jog", "4 × 400m in 1:52 · 1:30 jog"]);
+    expect(a.lines.slice(0, 2)).toEqual(["4 × 7 min @ 8:00/mi · 1:30 jog", "4 × 400m @ 7:29/mi in 1:52secs · 1:30 jog"]);
     expect(a.sets!.filter((x) => x.ladder).every((x) => x.part === "threshold")).toBe(true);
   });
   it("5 MI Zone 2 runs 45/55/60, 40 in W4", () => {
@@ -123,7 +127,7 @@ describe("weekly plan", () => {
     expect(w.map((x) => x.title)).toEqual(["Session A — Time Trial", "Session B — Zone 2", "Session A — Speed + Threshold"]);
     expect(w[0].lines[0]).toBe("800m all-out · CURRENT 2:40");
     expect(w[1].sets![0].minutes).toBe(20);
-    expect(w[2].lines.slice(0, 2)).toEqual(["4 × 200m in 0:40 · 1:00 jog", "1 × 3 min @ 6:44/mi · 1:00 jog"]);
+    expect(w[2].lines.slice(0, 2)).toEqual(["4 × 200m @ 5:22/mi in 0:40secs · 1:00 jog", "1 × 3 min @ 6:44/mi · 1:00 jog"]);
   });
   it("week is complete once all 3 cards are logged", () => {
     const t = st(r800);
@@ -145,7 +149,7 @@ describe("pace ladder", () => {
     expect(r2.ladder).toBe(307);
     expect(r2.streak).toBe(0);
     expect(fmtTime(r2.current)).toBe("2:36");
-    expect(intervals(r800, next(t, r2)).lines[0]).toBe("6 × 200m in 0:38 · 1:00 jog");
+    expect(intervals(r800, next(t, r2)).lines[0]).toBe("6 × 200m @ 5:07/mi in 0:38secs · 1:00 jog");
     expect(fmtTime(runPaces(r800, r2).threshold)).toBe("6:35"); // threshold follows CURRENT
     expect(r2.points).toHaveLength(2);
   });
@@ -154,7 +158,7 @@ describe("pace ladder", () => {
     const r = apply(r800, t, logA(r800, t, (i) => (i === 4 ? 41 : 40)));
     expect(r).toMatchObject({ ladder: 322, streak: 0, current: 160 });
   });
-  it("a missing rep counts as a miss", () => {
+  it("a rep left unchecked (logged as {}) counts as a miss", () => {
     const t = st(r800, { streak: 1 });
     const sets = logA(r800, t, 40);
     sets[0] = {};
@@ -276,5 +280,27 @@ describe("CURRENT and est. completion", () => {
   it("at or under target → 0 (REACHED)", () => {
     expect(runWeeksToTarget(r800, st(r800), 150)).toBe(0);
     expect(estCompletionDate(r800, st(r800, { current: 149 }))).toBeNull();
+  });
+});
+
+describe("F23 helpers", () => {
+  it("fmtTimeDigits formats typed digits as M:SS / H:MM:SS", () => {
+    expect(["2", "24", "245", "1200", "10230", "0245"].map((d) => fmtTimeDigits(d)))
+      .toEqual(["2", "24", "2:45", "12:00", "1:02:30", "2:45"]);
+  });
+  it("parseTime: M:SS → seconds; invalid → null", () => {
+    expect(parseTime("2:45")).toBe(165);
+    expect(parseTime("1:02:30")).toBe(3750);
+    expect(parseTime("2:75")).toBeNull();
+    expect(parseTime("")).toBeNull();
+  });
+  it("fmtDistance: meters under a mile, miles from a mile", () => {
+    expect([200, 800, 1.5 * 1609.344, 5 * 1609.344].map(fmtDistance)).toEqual(["200m", "800m", "1.5 mi", "5 mi"]);
+  });
+  it("runSessionTitle matches the card order", () => {
+    expect([0, 1, 2].map((i) => runSessionTitle(r800, 2, i)))
+      .toEqual(["Session A — Speed + Threshold", "Session B — Zone 2", "Session A — Speed + Threshold"]);
+    expect(runSessionTitle(r3, 4, 0)).toBe("Session A — Time Trial");
+    expect(runSessionTitle(r3, 4, 2)).toBe("Session A — Threshold + Speed");
   });
 });

@@ -1,5 +1,10 @@
 import type { Standard, TrainingState, SessionLog } from "../engine/types";
 import { STANDARD_META } from "../engine/types";
+import { fmtTime } from "../engine/run";
+
+// Run race times as M:SS; lifts / reps as the number + unit
+const fmtStd = (s: Standard, v: number, withUnit: boolean) =>
+  STANDARD_META[s.type].kind === "time" ? fmtTime(v) : withUnit ? `${v} ${STANDARD_META[s.type].unit}` : String(v);
 import { estCompletionDate } from "../engine/progression";
 
 export interface ExportData {
@@ -26,7 +31,7 @@ export const ExportService = {
     for (const s of data.standards) {
       const meta = STANDARD_META[s.type];
       lines.push(
-        `| ${meta.label} | ${s.start} ${meta.unit} | ${s.target} ${meta.unit} | ${exportEstCompletion(s, data)} | ${s.status} |`
+        `| ${meta.label} | ${fmtStd(s, s.start, true)} | ${fmtStd(s, s.target, true)} | ${exportEstCompletion(s, data)} | ${s.status} |`
       );
     }
     lines.push("");
@@ -62,7 +67,7 @@ export const ExportService = {
     lines.push("Lift,Baseline (lb),Target (lb),Estimated Completion Date,Status");
     for (const s of data.standards) {
       const meta = STANDARD_META[s.type];
-      lines.push(`${meta.label},${s.start},${s.target},${exportEstCompletion(s, data)},${s.status}`);
+      lines.push(`${meta.label},${fmtStd(s, s.start, false)},${fmtStd(s, s.target, false)},${exportEstCompletion(s, data)},${s.status}`);
     }
     lines.push("");
 

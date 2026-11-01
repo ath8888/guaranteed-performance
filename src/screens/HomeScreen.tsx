@@ -19,6 +19,7 @@ import {
 import { SpaceMono_400Regular } from "@expo-google-fonts/space-mono";
 import type { SessionLog, Standard, TrainingState } from "../engine/types";
 import { STANDARD_META } from "../engine/types";
+import { fmtTime } from "../engine/run";
 import { currentValue, estCompletionLabel } from "../engine/progression";
 import { StandardService } from "../services/StandardService";
 import { TrainingService } from "../services/TrainingService";
@@ -150,6 +151,10 @@ function StandardCard({
   const { standard, training, logs } = row;
   const meta = STANDARD_META[standard.type];
   const unit = meta.unit.toUpperCase();
+  // Run: race times as M:SS, no unit
+  const isTime = meta.kind === "time";
+  const num = (v: number) => (isTime ? fmtTime(v) : v);
+  const unitText = isTime ? "" : ` ${unit}`;
   const [actionOpen, setActionOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -186,22 +191,22 @@ function StandardCard({
         <View style={styles.numCol}>
           <Text style={styles.numLabel}>START</Text>
           <Text style={styles.numValueMono}>
-            {standard.start}<Text style={styles.numUnit}> {unit}</Text>
+            {num(standard.start)}<Text style={styles.numUnit}>{unitText}</Text>
           </Text>
         </View>
         <View style={styles.numDivider} />
         <View style={styles.numCol}>
           <Text style={styles.numLabel}>CURRENT</Text>
           <Text style={[styles.numValueMono, styles.numAccent]}>
-            {currentValue(standard, training, logs)}
-            <Text style={styles.numUnit}> {unit}</Text>
+            {num(currentValue(standard, training, logs))}
+            <Text style={styles.numUnit}>{unitText}</Text>
           </Text>
         </View>
         <View style={styles.numDivider} />
         <View style={styles.numCol}>
           <Text style={styles.numLabel}>TARGET</Text>
           <Text style={styles.numValueMono}>
-            {standard.target}<Text style={styles.numUnit}> {unit}</Text>
+            {num(standard.target)}<Text style={styles.numUnit}>{unitText}</Text>
           </Text>
         </View>
       </View>

@@ -3,6 +3,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -23,6 +24,8 @@ import { STANDARD_META } from "../engine/types";
 import { ENGINES } from "../engine/registry";
 import { cycleEndTM } from "../engine/progression";
 import { CalisthenicsService } from "../services/CalisthenicsService";
+import { RunService } from "../services/RunService";
+import { fmtDistance, fmtPace, fmtTime, fmtTimeDigits, parseTime, speedRepText } from "../engine/run";
 import type { Session } from "../engine/shared";
 import { StandardService } from "../services/StandardService";
 import { TrainingService } from "../services/TrainingService";
@@ -48,6 +51,10 @@ export default function ExecuteScreen({ navigation, route }: any) {
   const [setReps, setSetReps] = useState<(number | null)[]>([]);
   // Calisthenics strength block: vest load, editable each session
   const [load, setLoad] = useState<number | null>(null);
+  // Run: per-rep value (speed split s, threshold pace s/mi, Zone 2 minutes), optional Zone 2 pace, typed trial time
+  const [runVals, setRunVals] = useState<(number | null)[]>([]);
+  const [z2Pace, setZ2Pace] = useState<number | null>(null);
+  const [trialText, setTrialText] = useState("");
 
   async function loadSession() {
     if (!standardId) return;
@@ -66,6 +73,11 @@ export default function ExecuteScreen({ navigation, route }: any) {
     // Back-off sets start at the target reps (lower it on a short set); others must be entered.
     setSetReps((sess.sets ?? []).map((set) => (sess.kind === "backoff" ? set.reps : null)));
     setLoad(sess.kind === "strength" ? sess.sets?.[0]?.weight ?? 0 : null);
+    // Run reps start at the target (one thumb between reps); the time trial must be typed.
+    setRunVals((sess.sets ?? []).map((set) =>
+      set.part === "speed" ? set.time ?? null : set.part === "threshold" ? set.pace ?? null : set.part === "zone2" ? set.minutes ?? null : null));
+    setZ2Pace(null);
+    setTrialText("");
   }
 
   // Reload when params change (new GO → from Plan)
@@ -95,18 +107,23 @@ export default function ExecuteScreen({ navigation, route }: any) {
   }
 
   const isCal = standard.category === "calisthenics";
+  const isRun = standard.category === "run";
   const isStrengthBlock = session.kind === "strength";
+  const trialTime = session.kind === "trial" ? parseTime(trialText) : null;
   const amrapSetIndex = session.sets?.findIndex((set) => set.amrap) ?? -1;
   const hasAmrap = amrapSetIndex !== -1;
   const amrapReps = hasAmrap ? setReps[amrapSetIndex] : null;
   const allChecked = checked.length > 0 && checked.every(Boolean);
   const amrapReady = (session.sets ?? []).every((set, i) => !set.amrap || setReps[i] !== null);
-  const canComplete = allChecked && amrapReady;
+  // Run: unfinished reps can stay unchecked (logged as not done — a ladder miss)
+  const runReady = checked.some(Boolean) && (session.kind !== "trial" || trialTime !== null);
+  const canComplete = isRun ? runReady : allChecked && amrapReady;
   const isLastSession = sessionIndex >= totalSessions - 1;
 
   function toggleSet(i: number) {
     const isAmrap = session!.sets?.[i]?.amrap === true;
     if (isAmrap && setReps[i] === null) return; // must enter reps first
+    if (session!.sets?.[i]?.part === "trial" && trialTime === null) return; // must enter the time first
     const next = [...checked];
     next[i] = !next[i];
     setChecked(next);
@@ -133,6 +150,20 @@ export default function ExecuteScreen({ navigation, route }: any) {
 
   async function handleComplete() {
     if (!canComplete) return;
+
+    if (isRun) {
+      const sets = session!.sets!.map((set, i) => {
+        if (!checked[i]) return {};
+        const v = runVals[i] ?? undefined;
+        if (set.part === "speed") return { part: "speed" as const, distance: set.distance, time: v };
+        if (set.part === "threshold") return { minutes: set.minutes, pace: v };
+        if (set.part === "zone2") return { minutes: v ?? set.minutes, ...(z2Pace !== null ? { pace: z2Pace } : {}) };
+        return { part: "trial" as const, distance: set.distance, time: trialTime! };
+      });
+      await RunService.record(standard!, trainingState!, sessionIndex, sets);
+      navigation.navigate("Plan", { selectedId: standard!.id });
+      return;
+    }
 
     const sets = session!.sets?.map((set, i) => ({
       weight: isStrengthBlock && load !== null ? load : set.weight,
@@ -163,6 +194,76 @@ export default function ExecuteScreen({ navigation, route }: any) {
 
   const meta = STANDARD_META[standard.type];
 
+  function changeRunVal(i: number, delta: number) {
+    const next = [...runVals];
+    next[i] = Math.max(1, (next[i] ?? 0) + delta);
+    setRunVals(next);
+  }
+
+  function counter(label: string, display: string, onDelta: (d: number) => void) {
+    return (
+      <View style={s.amrapRow}>
+        <Text style={s.amrapLabel}>{label}</Text>
+        <View style={s.amrapCounter}>
+          <TouchableOpacity style={s.amrapBtn} onPress={() => onDelta(-1)}>
+            <Text style={s.amrapBtnText}>−</Text>
+          </TouchableOpacity>
+          <Text style={[s.amrapNum, s.runNum]}>{display}</Text>
+          <TouchableOpacity style={s.amrapBtn} onPress={() => onDelta(1)}>
+            <Text style={s.amrapBtnText}>+</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // Run rep: checkbox + prescription, then a −/+ counter prefilled with the target (typed time for the trial)
+  function renderRunSet(set: NonNullable<Session["sets"]>[number], i: number) {
+    const sets = session!.sets!;
+    const repNo = sets.slice(0, i).filter((x) => x.part === set.part).length + 1;
+    const v = runVals[i];
+    let main = "";
+    let label = "";
+    if (set.part === "speed") { main = speedRepText(set.distance!, set.time!, set.pace!); label = `REP ${repNo} · SPEED`; }
+    else if (set.part === "threshold") { main = `${set.minutes} min @ ${fmtPace(set.pace!)}`; label = `REP ${repNo} · THRESHOLD`; }
+    else if (set.part === "zone2") { main = `${set.minutes} min`; label = `ZONE 2 · ${fmtPace(set.pace!)} OR SLOWER`; }
+    else { main = `${fmtDistance(set.distance!)} all-out`; label = `TIME TRIAL · CURRENT ${fmtTime(trainingState!.run?.current ?? standard!.start)}`; }
+    const isChecked = checked[i] ?? false;
+
+    return (
+      <View key={i} style={s.setCard}>
+        <TouchableOpacity style={s.setRow} onPress={() => toggleSet(i)} activeOpacity={0.7}>
+          <View style={[s.checkbox, isChecked && s.checkboxChecked]}>
+            {isChecked && <Text style={s.checkmark}>✓</Text>}
+          </View>
+          <View style={s.setInfo}>
+            <Text style={s.setWeight}>{main}</Text>
+            <Text style={s.setLabel}>{label}</Text>
+          </View>
+        </TouchableOpacity>
+        {set.part === "speed" && counter("SPLIT:", v != null ? fmtTime(v) : "—", (d) => changeRunVal(i, d))}
+        {set.part === "threshold" && counter("PACE /MI:", v != null ? fmtTime(v) : "—", (d) => changeRunVal(i, d))}
+        {set.part === "zone2" && counter("MINUTES:", v != null ? String(v) : "—", (d) => changeRunVal(i, d))}
+        {set.part === "zone2" &&
+          counter("PACE /MI (OPTIONAL):", z2Pace != null ? fmtTime(z2Pace) : "—", (d) =>
+            setZ2Pace(Math.max(1, (z2Pace ?? set.pace!) + d)))}
+        {set.part === "trial" && (
+          <View style={s.amrapRow}>
+            <Text style={s.amrapLabel}>TIME:</Text>
+            <TextInput
+              style={s.trialInput}
+              keyboardType="number-pad"
+              value={trialText}
+              onChangeText={(t) => setTrialText(fmtTimeDigits(t))}
+              placeholder="MM:SS"
+              placeholderTextColor="#999"
+            />
+          </View>
+        )}
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       {/* Header */}
@@ -179,6 +280,7 @@ export default function ExecuteScreen({ navigation, route }: any) {
           {session.title.toUpperCase()} · W{trainingState.week} · C{trainingState.cycle}
         </Text>
         {isCal && <Text style={s.subtitleNote}>{session.lines[0]}</Text>}
+        {isRun && <Text style={s.subtitleNote}>{session.lines[session.lines.length - 1]}</Text>}
       </View>
 
       <ScrollView contentContainerStyle={s.list}>
@@ -197,6 +299,7 @@ export default function ExecuteScreen({ navigation, route }: any) {
           </View>
         )}
         {session.sets?.map((set, i) => {
+          if (isRun) return renderRunSet(set, i);
           const isAmrap = set.amrap === true;
           const isChecked = checked[i] ?? false;
 
@@ -414,6 +517,17 @@ const s = StyleSheet.create({
     fontSize: 16,
     color: "#0000FF",
     lineHeight: 32,
+  },
+  runNum: { width: 64 },
+  trialInput: {
+    borderWidth: 2,
+    borderColor: "#0000FF",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    minWidth: 96,
+    fontFamily: "SpaceMono_400Regular",
+    fontSize: 16,
+    color: "#0000FF",
   },
   completeBtn: {
     margin: 14,

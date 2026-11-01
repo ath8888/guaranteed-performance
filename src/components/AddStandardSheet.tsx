@@ -15,9 +15,10 @@ import { StandardService } from "../services/StandardService";
 import { TrainingService } from "../services/TrainingService";
 import { initTrainingMax } from "../engine/progression";
 import { CALISTHENICS_CONFIG, initCalState } from "../engine/calisthenics";
+import { fmtTimeDigits, initRunState, parseTime } from "../engine/run";
 
-const TYPES: StandardType[] = ["bench", "ohp", "squat", "deadlift", "olympic", "pushups"];
-const CATEGORIES: StandardCategory[] = ["lifts", "olympic", "calisthenics"];
+const TYPES: StandardType[] = ["bench", "ohp", "squat", "deadlift", "olympic", "pushups", "run800", "run1_5", "run3", "run5"];
+const CATEGORIES: StandardCategory[] = ["lifts", "olympic", "calisthenics", "run"];
 
 interface Props {
   visible: boolean;
@@ -33,6 +34,10 @@ export default function AddStandardSheet({ visible, onClose, onAdded }: Props) {
   const [error, setError] = useState("");
   const nameRequired = type === "olympic";
   const isReps = STANDARD_META[type].unit === "reps";
+  // Run: race times typed as digits, shown as MM:SS
+  const isTime = STANDARD_META[type].kind === "time";
+  const unitLabel = isTime ? "MM:SS" : isReps ? "MAX REPS" : "LB";
+  const onNumber = (set: (v: string) => void) => (v: string) => set(isTime ? fmtTimeDigits(v) : v);
 
   function reset() {
     setType("bench");
@@ -43,13 +48,17 @@ export default function AddStandardSheet({ visible, onClose, onAdded }: Props) {
   }
 
   async function handleAdd() {
-    const b = parseInt(start, 10);
-    const t = parseInt(target, 10);
+    const b = isTime ? parseTime(start) ?? 0 : parseInt(start, 10);
+    const t = isTime ? parseTime(target) ?? 0 : parseInt(target, 10);
     if (nameRequired && !name.trim()) {
       setError("Name your Olympic lift (e.g. Clean & Press).");
       return;
     }
-    if (!b || !t || b <= 0 || t <= b) {
+    if (isTime && (!b || !t || t >= b)) {
+      setError("Target must be faster than start.");
+      return;
+    }
+    if (!isTime && (!b || !t || b <= 0 || t <= b)) {
       setError("Target must be greater than start.");
       return;
     }
@@ -58,7 +67,8 @@ export default function AddStandardSheet({ visible, onClose, onAdded }: Props) {
     const tm = initTrainingMax(standard);
     // Calisthenics: vest load starts at 15 lb; the user can change it on any strength session.
     const cal = standard.category === "calisthenics" ? initCalState(b, CALISTHENICS_CONFIG.startLoad) : undefined;
-    await TrainingService.init(standard.id, tm, cal);
+    const run = standard.category === "run" ? initRunState(standard) : undefined;
+    await TrainingService.init(standard.id, tm, cal, run);
     reset();
     onAdded();
   }
@@ -94,7 +104,11 @@ export default function AddStandardSheet({ visible, onClose, onAdded }: Props) {
                   <TouchableOpacity
                     key={t}
                     style={[styles.chip, type === t && styles.chipActive]}
-                    onPress={() => setType(t)}
+                    onPress={() => {
+                      // Times and lb / reps don't convert — clear the inputs when switching between them
+                      if (STANDARD_META[t].kind !== STANDARD_META[type].kind) { setStart(""); setTarget(""); }
+                      setType(t);
+                    }}
                   >
                     <Text style={[styles.chipText, type === t && styles.chipTextActive]}>
                       {STANDARD_META[t].short.toUpperCase()}
@@ -116,23 +130,23 @@ export default function AddStandardSheet({ visible, onClose, onAdded }: Props) {
           />
 
           {/* Inputs */}
-          <Text style={styles.label}>{isReps ? "START (MAX REPS)" : "START (LB)"}</Text>
+          <Text style={styles.label}>START ({unitLabel})</Text>
           <TextInput
             style={styles.input}
             keyboardType="number-pad"
             value={start}
-            onChangeText={setStart}
-            placeholder={isReps ? "e.g. 20" : "e.g. 200"}
+            onChangeText={onNumber(setStart)}
+            placeholder={isTime ? "e.g. 2:45" : isReps ? "e.g. 20" : "e.g. 200"}
             placeholderTextColor="#999"
           />
 
-          <Text style={styles.label}>{isReps ? "TARGET (MAX REPS)" : "TARGET (LB)"}</Text>
+          <Text style={styles.label}>TARGET ({unitLabel})</Text>
           <TextInput
             style={styles.input}
             keyboardType="number-pad"
             value={target}
-            onChangeText={setTarget}
-            placeholder={isReps ? "e.g. 50" : "e.g. 300"}
+            onChangeText={onNumber(setTarget)}
+            placeholder={isTime ? "e.g. 2:30" : isReps ? "e.g. 50" : "e.g. 300"}
             placeholderTextColor="#999"
           />
 

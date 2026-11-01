@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { SessionLog, Standard } from "../engine/types";
 import { STANDARD_META } from "../engine/types";
 import { StandardService } from "./StandardService";
+import { runSessionTitle } from "../engine/run";
 
 // Standards deleted from Home: kept so their session logs still show in History.
 const DELETED_KEY = "deletedStandards";
@@ -14,8 +15,10 @@ export interface HistoryEntry {
   day: string; // local date, YYYY-MM-DD
 }
 
-// Mirrors the engines' session order: lifts [main, BBB], olympic [main], push-ups [A strength, B endurance, B endurance].
+// Mirrors the engines' session order: lifts [main, BBB], olympic [main], push-ups [A strength, B endurance, B endurance],
+// run [A, B — Zone 2, A] (week 4: Time Trial, B, A).
 export function sessionTitle(std: Standard, log: SessionLog): string {
+  if (std.category === "run") return runSessionTitle(std, log.week, log.sessionIndex);
   if (std.category === "calisthenics") {
     return log.sessionIndex === 0 ? "Session A — Strength" : "Session B — Endurance";
   }

@@ -63,6 +63,37 @@ export function fmtTime(sec: number): string {
 
 export const fmtPace = (secPerMile: number) => `${fmtTime(secPerMile)}/mi`;
 
+// Speed rep: "200m @ 6:02/mi in 0:45secs" (pace from the split when not given)
+export const speedRepText = (m: number, time: number, pace = time / (m / MILE)) =>
+  `${fmtDistance(m)} @ ${fmtPace(pace)} in ${fmtTime(time)}secs`;
+
+// "200m", "1.5 mi"
+export const fmtDistance = (m: number) => (m < MILE ? `${m}m` : `${Math.round((m / MILE) * 10) / 10} mi`);
+
+// Typed digits → time while typing ("245" → "2:45", "10230" → "1:02:30")
+export function fmtTimeDigits(raw: string): string {
+  const d = raw.replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, 6);
+  if (d.length <= 2) return d;
+  const ss = d.slice(-2);
+  const rest = d.slice(0, -2);
+  return rest.length <= 2 ? `${rest}:${ss}` : `${rest.slice(0, -2)}:${rest.slice(-2)}:${ss}`;
+}
+
+// "2:45" → 165 s; null when empty, or minutes / seconds ≥ 60
+export function parseTime(text: string): number | null {
+  if (!text) return null;
+  const parts = text.split(":").map(Number);
+  if (parts.some((p) => isNaN(p)) || parts.slice(1).some((p) => p >= 60)) return null;
+  return parts.reduce((acc, p) => acc * 60 + p, 0) || null;
+}
+
+// Session titles by card position (W1–W3: A · B · A; W4: Time Trial · B · deload A)
+export function runSessionTitle(s: Standard, week: number, sessionIndex: number): string {
+  if (sessionIndex === 1) return "Session B — Zone 2";
+  if (week === 4 && sessionIndex === 0) return "Session A — Time Trial";
+  return plan(s).ladder === "speed" ? "Session A — Speed + Threshold" : "Session A — Threshold + Speed";
+}
+
 // Riegel: predicted time over toM from a time over fromM, as a pace (s/mi)
 function riegelPace(time: number, fromM: number, toM: number, exp: number): number {
   return (time * Math.pow(toM / fromM, exp)) / (toM / MILE);
@@ -108,7 +139,7 @@ function speedPart(s: Standard, pace: number, n: number) {
   const sets: PlannedSet[] = Array.from({ length: n }, () => ({
     reps: 1, part: "speed", distance: p.speed.m, time, pace, ladder: p.ladder === "speed",
   }));
-  return { sets, line: `${n} × ${p.speed.m}m in ${fmtTime(time)} · ${p.speed.rest} jog` };
+  return { sets, line: `${n} × ${speedRepText(p.speed.m, time, pace)} · ${p.speed.rest} jog` };
 }
 
 function thresholdPart(s: Standard, pace: number, n: number, min: number) {
@@ -134,12 +165,11 @@ export function runWeek(s: Standard, t: TrainingState, cfg: Config = RUN_CONFIG)
   const thr = thresholdPart(s, pace.threshold, n(p.threshold.reps), thrMin);
   const parts = p.ladder === "speed" ? [speed, thr] : [thr, speed];
   const intervals: Session = {
-    title: p.ladder === "speed" ? "Session A — Speed + Threshold" : "Session A — Threshold + Speed",
+    title: runSessionTitle(s, 1, 0),
     lines: [...parts.map((x) => x.line), WARMUP],
     sets: parts.flatMap((x) => x.sets),
     kind: "intervals",
-    recommended: true,
-    optional: false,
+    optional: true, // every run card can be SKIPPED (no RECOMMENDED / OPTIONAL tag)
   };
 
   const z2min = p.zone2[deload ? 3 : w];
@@ -148,8 +178,7 @@ export function runWeek(s: Standard, t: TrainingState, cfg: Config = RUN_CONFIG)
     lines: [`${z2min} min · ${fmtPace(pace.zone2)} or slower · conversational`],
     sets: [{ reps: 1, part: "zone2", minutes: z2min, pace: pace.zone2 }],
     kind: "zone2",
-    recommended: true,
-    optional: false,
+    optional: true, // every run card can be SKIPPED (no RECOMMENDED / OPTIONAL tag)
   };
 
   if (!deload) return [intervals, zone2, { ...intervals }];
@@ -159,8 +188,7 @@ export function runWeek(s: Standard, t: TrainingState, cfg: Config = RUN_CONFIG)
     lines: [`${p.distLabel} all-out · CURRENT ${fmtTime(r.current)}`, WARMUP],
     sets: [{ reps: 1, part: "trial", distance: p.meters }],
     kind: "trial",
-    recommended: true,
-    optional: false,
+    optional: true, // every run card can be SKIPPED (no RECOMMENDED / OPTIONAL tag)
   };
   return [trial, zone2, intervals];
 }
