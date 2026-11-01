@@ -30,7 +30,7 @@ When in doubt, ask before touching it.
 |---|---|
 | Framework | Expo SDK 57 (React Native 0.86.3) + TypeScript |
 | Runtime | React 19.2.3, Node 20 (via fnm) |
-| Navigation | React Navigation v6 — **3 bottom tabs: Home / Plan / Execute** |
+| Navigation | React Navigation v6 — **2 bottom tabs: Home / Execute** (Execute tab = native stack: Plan screen → Session screen, F18) |
 | Storage | AsyncStorage (local, no backend) |
 | Plan engine | Wendler 5/3/1 + BBB (`strength.ts`), Olympic 5/3/1-style triples (`olympic.ts`), Push-ups weekly AMRAP + back-off sets (`calisthenics.ts`) — via `registry.ts`, `progression.ts`, `shared.ts` |
 
@@ -48,7 +48,7 @@ When in doubt, ask before touching it.
 ## Scope (v1 — do not expand without asking)
 - **Standards:** Lifts (Bench, OHP, Squat, Deadlift), Olympic Lift (one generic type, user names it), Calisthenics (Push-ups). Run/pullups excluded.
 - **Progression is per category:** every type in a category uses the same engine. MVP shipped 2026-10-21; v1 started with F12.
-- **3 screens:** Home, Plan, Execute. No Setup tab.
+- **3 screens, 2 tabs:** Home tab; Execute tab holds Plan (week view) → GO → Session (set logging). No Setup tab.
 - **Add Standard:** "+" button centered at bottom of Home screen → opens a bottom sheet.
 - **Data:** local AsyncStorage only, no auth, no backend.
 

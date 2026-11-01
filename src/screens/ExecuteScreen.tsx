@@ -168,7 +168,7 @@ export default function ExecuteScreen({ navigation, route }: any) {
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => navigation.navigate("Plan")}>
-          <Text style={s.backText}>← PLAN</Text>
+          <Text style={s.backText}>← BACK</Text>
         </TouchableOpacity>
         <Text style={s.headerTitle}>{(standard.name ?? meta.label).toUpperCase()}</Text>
       </View>

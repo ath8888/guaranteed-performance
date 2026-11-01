@@ -292,7 +292,7 @@ export default function PlanScreen({ navigation, route }: any) {
               card={card}
               onSkip={() => handleSkip(card)}
               onGo={() =>
-                navigation.navigate("Execute", {
+                navigation.navigate("Session", {
                   standardId: selected!.id,
                   sessionIndex: card.sessionIndex,
                 })

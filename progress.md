@@ -26,6 +26,7 @@
 - [x] **BUG-2** — Done cards show the prescription rebuilt from the current state (e.g. push-ups' new vest load / best) instead of what was logged. Fix: done cards with logged sets show them (`35 lb × 9`, or `52 reps` bodyweight); RECOMMENDED/OPTIONAL tag hidden on done cards; skipped / unlogged cards keep the prescription. — DONE ✓ (120/120 tests pass, tested on device 2026-10-31)
 - [x] **F16** (v1) — Live CURRENT: only rises within a cycle, resets at cycle end. Lifts/Olympic = max(TM/0.9, best e1RM of the main-lift top set logged in weeks 2–3 of this cycle; week 1, deload, BBB ignored). Push-ups = best endurance AMRAP this cycle. Est. completion date uses the new CURRENT (implied TM = CURRENT × 0.9) and is anchored to the start of the current plan week (no daily drift). — DONE ✓ (137/137 tests pass, tested on device 2026-10-31)
 - [x] **F17** (v1) — Remove FSL from the Olympic Lift category: main lift only, every week. — DONE ✓ (136/136 tests pass, tested on device 2026-10-31)
+- [x] **F18** (v1) — Merge Plan + Execute tabs: 2 bottom tabs (Home / Execute). Execute tab = stack (plan screen → GO → session screen; back returns to plan). Adds `@react-navigation/native-stack`. — DONE ✓ (136/136 tests pass, tested on device 2026-10-31)
 - [ ] **Export** (v1 per master-plan.md "manual export") — export UI + include push-up state (max, vest load, endurance reps × sets, workouts/week, retests). On hold until requested.
 
 ---

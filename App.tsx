@@ -1,5 +1,6 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -8,6 +9,17 @@ import PlanScreen from './src/screens/PlanScreen';
 import ExecuteScreen from './src/screens/ExecuteScreen';
 
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
+
+// Execute tab: plan screen; GO → pushes the session screen on top
+function ExecuteStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Plan" component={PlanScreen} />
+      <Stack.Screen name="Session" component={ExecuteScreen} />
+    </Stack.Navigator>
+  );
+}
 
 export default function App() {
   return (
@@ -45,20 +57,11 @@ export default function App() {
           }}
         />
         <Tab.Screen
-          name="Plan"
-          component={PlanScreen}
+          name="Execute"
+          component={ExecuteStack}
           options={{
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="list-outline" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="Execute"
-          component={ExecuteScreen}
-          options={{
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="play-outline" size={size} color={color} />
             ),
           }}
         />
