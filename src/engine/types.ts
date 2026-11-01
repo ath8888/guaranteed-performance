@@ -1,21 +1,27 @@
-export type StandardType = "bench" | "ohp" | "squat" | "deadlift" | "olympic" | "pushups";
+export type StandardType = "bench" | "ohp" | "squat" | "deadlift" | "olympic" | "pushups" | "run800" | "run1_5" | "run3" | "run5";
 
 // Each category has its own progression engine; every type in a category shares it.
-export type StandardCategory = "lifts" | "olympic" | "calisthenics";
+export type StandardCategory = "lifts" | "olympic" | "calisthenics" | "run";
 
 export const CATEGORY_LABEL: Record<StandardCategory, string> = {
   lifts: "Lifts",
   olympic: "Olympic Lift",
   calisthenics: "Calisthenics",
+  run: "Run",
 };
 
-export const STANDARD_META: Record<StandardType, { label: string; short: string; unit: string; kind: "load" | "reps"; lower: false; category: StandardCategory }> = {
+// lower: true → a smaller value is better (run race times, stored in seconds)
+export const STANDARD_META: Record<StandardType, { label: string; short: string; unit: string; kind: "load" | "reps" | "time"; lower: boolean; category: StandardCategory }> = {
   bench:    { label: "Bench Press",    short: "Bench",    unit: "lb",   kind: "load", lower: false, category: "lifts" },
   ohp:      { label: "Overhead Press", short: "OHP",      unit: "lb",   kind: "load", lower: false, category: "lifts" },
   squat:    { label: "Squat",          short: "Squat",    unit: "lb",   kind: "load", lower: false, category: "lifts" },
   deadlift: { label: "Deadlift",       short: "Deadlift", unit: "lb",   kind: "load", lower: false, category: "lifts" },
   olympic:  { label: "Olympic Lift",   short: "Olympic",  unit: "lb",   kind: "load", lower: false, category: "olympic" },
   pushups:  { label: "Push-ups",       short: "Push-ups", unit: "reps", kind: "reps", lower: false, category: "calisthenics" },
+  run800:   { label: "800m",           short: "800m",     unit: "time", kind: "time", lower: true,  category: "run" },
+  run1_5:   { label: "1.5 Mile",       short: "1.5 mi",   unit: "time", kind: "time", lower: true,  category: "run" },
+  run3:     { label: "3 Mile",         short: "3 mi",     unit: "time", kind: "time", lower: true,  category: "run" },
+  run5:     { label: "5 Mile",         short: "5 mi",     unit: "time", kind: "time", lower: true,  category: "run" },
 };
 
 // Standard field definitions (displayed in UI as Start / Current / Target):
@@ -40,6 +46,17 @@ export interface TrainingState {
   cycle: number;
   week: 1 | 2 | 3 | 4;
   cal?: CalisthenicsState; // calisthenics standards only (trainingMax unused there)
+  run?: RunState;          // run standards only (trainingMax unused there)
+}
+
+// Run: Start / Current / Target are race times in seconds; paces are seconds per mile.
+export interface RunState {
+  ladder: number;   // ladder pace (s/mi): speed reps (≤1.5 mi) or threshold reps (>1.5 mi)
+  streak: number;   // qualifying sessions in a row at the ladder pace (2 → step)
+  current: number;  // CURRENT race time (s) — set by time trials, moved by half of each ladder step
+  adjust: { speed?: number; threshold?: number }; // personal adjustment (s/mi, negative = faster) on non-step paces
+  trials: { date: string; time: number; cycle: number }[];
+  points: { date: string; current: number }[]; // CURRENT over time (est. completion rate, chart)
 }
 
 // Push-ups (calisthenics): Start / Current / Target are bodyweight max reps.
@@ -62,7 +79,8 @@ export interface CheckIn {
   date: string;
 }
 
-export interface SetActual { weight?: number; reps?: number }
+// Run: time = split or race time (s), pace = s/mi, minutes = duration run
+export interface SetActual { weight?: number; reps?: number; time?: number; pace?: number; minutes?: number }
 
 export interface SessionLog {
   id: string;

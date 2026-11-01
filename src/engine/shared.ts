@@ -28,6 +28,13 @@ export interface PlannedSet {
   amrap?: boolean;
   maxReps?: number; // caps the logged reps on an amrap set (rep-logged set, not all-out)
   note?: string;
+  // Run: one rep (reps = 1)
+  part?: "speed" | "threshold" | "zone2" | "trial";
+  distance?: number; // m — speed reps, time trial
+  minutes?: number;  // threshold reps, Zone 2
+  time?: number;     // target split (s) for distance reps
+  pace?: number;     // target pace (s/mi) for timed reps; Zone 2: pace ceiling
+  ladder?: boolean;  // counts toward ladder steps
 }
 
 export interface Session {
@@ -35,7 +42,7 @@ export interface Session {
   lines: string[];
   sets?: PlannedSet[];
   amrap?: boolean;
-  kind?: "main" | "bbb" |"density" | "test" | "strength" | "endurance" | "backoff";
+  kind?: "main" | "bbb" |"density" | "test" | "strength" | "endurance" | "backoff" | "intervals" | "zone2" | "trial";
   optional?: boolean; // supplemental work the user may SKIP
   recommended?: boolean; // calisthenics: block the plan currently emphasizes
   sessionNo?: number;  // calisthenics: training day within the week (0 = strength day, 1 = endurance day)
