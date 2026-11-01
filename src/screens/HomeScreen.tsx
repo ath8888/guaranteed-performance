@@ -23,6 +23,7 @@ import { currentValue, estCompletionLabel } from "../engine/progression";
 import { StandardService } from "../services/StandardService";
 import { TrainingService } from "../services/TrainingService";
 import { SessionService } from "../services/SessionService";
+import { HistoryService } from "../services/HistoryService";
 import AddStandardSheet from "../components/AddStandardSheet";
 import ProgressChartModal from "../components/ProgressChartModal";
 
@@ -64,9 +65,11 @@ export default function HomeScreen() {
   }
 
   async function handleDelete(id: string) {
+    // Session logs are kept for the History tab; remember the standard so they still have a name.
+    const std = await StandardService.getById(id);
+    if (std) await HistoryService.rememberDeleted(std);
     await StandardService.remove(id);
     await TrainingService.remove(id);
-    await SessionService.removeAll(id);
     await loadData();
   }
 

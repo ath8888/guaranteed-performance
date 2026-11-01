@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   PanResponder,
   ScrollView,
@@ -45,7 +45,7 @@ interface CardData {
   loggedLines?: string[]; // done cards: what was actually logged, shown instead of the prescription
 }
 
-const loggedLine = (set: SetActual) =>
+export const loggedLine = (set: SetActual) =>
   set.weight ? `${set.weight} lb × ${set.reps}` : `${set.reps} reps`;
 
 export function buildCards(
@@ -179,6 +179,22 @@ export default function PlanScreen({ navigation, route }: any) {
     })
   ).current;
 
+  // Keep the selected chip centred in the top menu when it overflows (e.g. after a swipe)
+  const chipScrollRef = useRef<ScrollView>(null);
+  const chipLayouts = useRef<Record<string, { x: number; width: number }>>({});
+  const chipBarWidth = useRef(0);
+
+  function scrollToChip(id: string | null) {
+    const layout = id ? chipLayouts.current[id] : undefined;
+    if (!layout) return;
+    const x = layout.x - (chipBarWidth.current - layout.width) / 2;
+    chipScrollRef.current?.scrollTo({ x: Math.max(0, x), animated: true });
+  }
+
+  useEffect(() => {
+    scrollToChip(selectedId);
+  }, [selectedId]);
+
   async function handleSelectStandard(id: string) {
     setSelectedId(id);
     AsyncStorage.setItem(LAST_SELECTED_KEY, id).catch(() => {});
@@ -218,11 +234,26 @@ export default function PlanScreen({ navigation, route }: any) {
       {/* Standard chips */}
       {standards.length > 0 && (
         <View style={s.chips}>
-          {standards.map((std) => (
+        <ScrollView
+          ref={chipScrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={s.chipsContent}
+          onLayout={(e) => {
+            chipBarWidth.current = e.nativeEvent.layout.width;
+          }}
+        >
+          {standards.map((std, i) => (
             <TouchableOpacity
               key={std.id}
-              style={[s.chip, selectedId === std.id && s.chipActive]}
+              style={[s.chip, i > 0 && s.chipDivider, selectedId === std.id && s.chipActive]}
               onPress={() => handleSelectStandard(std.id)}
+              onLayout={(e) => {
+                const { x, width } = e.nativeEvent.layout;
+                chipLayouts.current[std.id] = { x, width };
+                // First layout: bring the remembered selection into view
+                if (std.id === selectedId) scrollToChip(std.id);
+              }}
             >
               <Text
                 style={[
@@ -234,6 +265,7 @@ export default function PlanScreen({ navigation, route }: any) {
               </Text>
             </TouchableOpacity>
           ))}
+        </ScrollView>
         </View>
       )}
 
@@ -393,26 +425,32 @@ function SessionCard({
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#fff" },
+  // Boxed segments, matching HISTORY's LIST | CALENDAR toggle. Border lives on a wrapper View:
+  // on a horizontal ScrollView, Android clips the bottom of the content.
   chips: {
-    flexDirection: "row",
-    borderBottomWidth: 2,
-    borderBottomColor: "#000",
+    margin: 14,
+    marginBottom: 0,
+    borderWidth: 2,
+    borderColor: "#000",
   },
+  // flexGrow: chips still fill the width when they fit; scroll sideways when they don't
+  chipsContent: { flexGrow: 1 },
   chip: {
-    flex: 1,
+    flexGrow: 1,
+    paddingHorizontal: 14,
     paddingVertical: 10,
     alignItems: "center",
-    borderBottomWidth: 3,
-    borderBottomColor: "transparent",
+    backgroundColor: "#fff",
   },
-  chipActive: { borderBottomColor: "#0000FF" },
+  chipDivider: { borderLeftWidth: 2, borderLeftColor: "#000" },
+  chipActive: { backgroundColor: "#000" },
   chipText: {
     fontFamily: "WorkSans_600SemiBold",
-    fontSize: 10,
-    letterSpacing: 1.2,
-    color: "#888",
+    fontSize: 11,
+    letterSpacing: 1.5,
+    color: "#000",
   },
-  chipTextActive: { color: "#000" },
+  chipTextActive: { color: "#fff" },
   weekRow: {
     flexDirection: "row",
     alignItems: "center",

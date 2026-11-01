@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import HomeScreen from './src/screens/HomeScreen';
 import PlanScreen from './src/screens/PlanScreen';
 import ExecuteScreen from './src/screens/ExecuteScreen';
+import HistoryScreen from './src/screens/HistoryScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -62,6 +63,15 @@ export default function App() {
           options={{
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="list-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="History"
+          component={HistoryScreen}
+          options={{
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="calendar-outline" size={size} color={color} />
             ),
           }}
         />
