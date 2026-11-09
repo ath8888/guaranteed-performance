@@ -1,6 +1,6 @@
 # GuaranteedStandards — Shared Decision Tables
 
-**Status:** v1.0 — matches the app (2026-11-09).
+**Status:** v1.1 — matches the app (2026-11-09).
 **Owner:** A.D.
 **Engines:** Every engine (Lifts, Olympic, Calisthenics, Run). Code: `shared.ts`, `progression.ts`, `TrainingService.ts`, `SessionService.ts`, `HistoryService.ts`.
 
@@ -73,6 +73,8 @@ Calisthenics and Run round in their own ways (reps, seconds). Those rules go in 
 | S3-R3 | All | Every card in week 4 is logged (done or skipped) | The engine's cycle-end rule runs, then week 1 of the next cycle | `[App]` |
 
 A cycle is always weeks 1–4. What happens in each week, including week 4, is in the engine's table. The plan never moves on time alone; a week the user does not train waits.
+
+S3 is checked when a card is logged, and again whenever the plan opens. A week whose cards are all logged but that did not move on (a stuck week) moves on when the plan opens, with the same result as S3-R2 / S3-R3.
 
 ---
 
@@ -149,3 +151,4 @@ Then the plan moves to week 2 and CURRENT is unchanged
 |---|---|---|---|
 | 2026-11-09 | All | v1.0 created from the app's shared code. Core CURRENT rule, rounding, cycle/week, skips, est. completion, delete moved here from lifts.md and olympic-lifts.md or written down for the first time. | A.D.: one shared table, engine tables point to it |
 | 2026-11-09 | S1-R1 | Wording: CURRENT may also change on a Run ladder step (run.md R5). | A.D.: keep Run ladder nudge |
+| 2026-11-09 | S3 | S3 is also checked when the plan opens, so a stuck week (all cards logged, week not moved on) catches up. No rule changed. | BUG-3: Clean and Press stuck on W2 |

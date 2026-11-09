@@ -31,6 +31,7 @@ import { CalisthenicsService } from "../services/CalisthenicsService";
 import { cardLock, isStalled } from "../engine/calisthenics";
 import { RunService } from "../services/RunService";
 import { LiftService } from "../services/LiftService";
+import { WeekService } from "../services/WeekService";
 import { fmtDistance, fmtPace, fmtTime, speedRepText } from "../engine/run";
 
 const LAST_SELECTED_KEY = "plan:lastSelectedId";
@@ -140,7 +141,10 @@ export default function PlanScreen({ navigation, route }: any) {
   const [viewedWeek, setViewedWeek] = useState<WeekNum>(1);
 
   async function loadForId(id: string) {
-    const state = await TrainingService.get(id);
+    let state = await TrainingService.get(id);
+    // BUG-3: a week whose cards are all logged but never moved on catches up (shared S3)
+    const std = state ? await StandardService.getById(id) : null;
+    if (state && std) state = await WeekService.catchUp(std, state);
     setTrainingState(state);
     if (state) {
       setViewedWeek(state.week);
