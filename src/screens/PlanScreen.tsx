@@ -232,7 +232,7 @@ export default function PlanScreen({ navigation, route }: any) {
       await loadForId(selectedId);
       return;
     }
-    if (selected!.category === "lifts") {
+    if (selected!.category === "lifts" || selected!.category === "olympic") {
       await LiftService.record(selected!, trainingState, card.sessionIndex, undefined, true);
       await loadForId(selectedId);
       return;

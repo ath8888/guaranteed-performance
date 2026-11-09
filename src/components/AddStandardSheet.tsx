@@ -68,8 +68,8 @@ export default function AddStandardSheet({ visible, onClose, onAdded }: Props) {
     // Calisthenics: vest load starts at 15 lb; the user can change it on any strength session.
     const cal = standard.category === "calisthenics" ? initCalState(b, CALISTHENICS_CONFIG.startLoad) : undefined;
     const run = standard.category === "run" ? initRunState(standard) : undefined;
-    // Lifts: CURRENT starts at START; the TM is always 90% of CURRENT (decision-tables/lifts.md)
-    const current = standard.category === "lifts" ? standard.start : undefined;
+    // Lifts + Olympic: CURRENT starts at START; the TM is always 90% of CURRENT (decision-tables/)
+    const current = standard.category === "lifts" || standard.category === "olympic" ? standard.start : undefined;
     await TrainingService.init(standard.id, tm, cal, run, current);
     reset();
     onAdded();

@@ -54,3 +54,30 @@ describe("LiftService.record (lifts.md)", () => {
     expect(next).toMatchObject({ current: 335, trainingMax: 300, week: 1, cycle: 2 });
   });
 });
+
+describe("LiftService.record (olympic-lifts.md)", () => {
+  const oly: Standard = { id: "ol", type: "olympic", name: "Power Clean", category: "olympic", start: 150, target: 200, createdAt: "2026-11-01T12:00:00.000Z", status: "active" };
+  const olyState = async () => (await TrainingService.get("ol"))!;
+  const triple = (weight: number, reps: number) => [{ weight: 100, reps: 3 }, { weight: 115, reps: 3 }, { weight, reps }];
+  async function runCycle(w1: number, w2: number, w3: number) {
+    await LiftService.record(oly, await olyState(), 0, triple(115, w1));
+    await LiftService.record(oly, await olyState(), 0, triple(120, w2));
+    await LiftService.record(oly, await olyState(), 0, triple(130, w3));
+    const mid = await olyState();
+    return { mid, end: await LiftService.record(oly, mid, 0, triple(80, 3)) };
+  }
+  beforeEach(async () => { await TrainingService.init("ol", 135, undefined, undefined, 150); });
+
+  it("top sets never move CURRENT mid-cycle", async () => {
+    const { mid } = await runCycle(3, 3, 3);
+    expect(mid).toMatchObject({ current: 150, trainingMax: 135, week: 4 });
+  });
+  it("all triples → +5 to CURRENT at cycle end, TM = 90% of it", async () => {
+    const { end } = await runCycle(3, 3, 3);
+    expect(end).toMatchObject({ current: 155, trainingMax: 140, week: 1, cycle: 2 });
+  });
+  it("0 reps on week 3 → CURRENT holds, no reset", async () => {
+    const { end } = await runCycle(3, 3, 0);
+    expect(end).toMatchObject({ current: 150, trainingMax: 135, week: 1, cycle: 2 });
+  });
+});

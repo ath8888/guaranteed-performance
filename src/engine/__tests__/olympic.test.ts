@@ -1,7 +1,7 @@
 import { olympicWeek } from "../olympic";
 import { liftWeek } from "../strength";
 import { ENGINES } from "../registry";
-import { initTrainingMax, wendlerNextTM, wavesToTarget, estCompletionDate, cycleEndTM } from "../progression";
+import { initTrainingMax, wavesToTarget, estCompletionDate, cycleEndTM } from "../progression";
 import type { Standard } from "../types";
 
 // 1RM 150 → TM 135
@@ -70,22 +70,6 @@ describe("BBB is optional for strength lifts", () => {
   });
 });
 
-describe("olympic TM progression (week 3 top set reps)", () => {
-  it("3 reps → +5 lb", () => {
-    expect(wendlerNextTM(oly, TM, 3)).toBe(140);
-  });
-  it("1–2 reps → hold", () => {
-    expect(wendlerNextTM(oly, TM, 2)).toBe(135);
-    expect(wendlerNextTM(oly, TM, 1)).toBe(135);
-  });
-  it("0 reps → reset to 90%", () => {
-    expect(wendlerNextTM(oly, TM, 0)).toBe(120);
-  });
-  it("no reps logged → hold", () => {
-    expect(wendlerNextTM(oly, TM, undefined)).toBe(135);
-  });
-});
-
 describe("cycleEndTM: week 3 set 3 decides next cycle", () => {
   const state = { standardId: "o1", trainingMax: TM, cycle: 2, week: 4 as const };
   // main-lift log with set 3 reps; other weeks deliberately disagree to prove only week 3 counts
@@ -102,8 +86,8 @@ describe("cycleEndTM: week 3 set 3 decides next cycle", () => {
     const logs = [mainLog(2, 1, 3), mainLog(2, 2, 3), mainLog(2, 3, 2)];
     expect(cycleEndTM(oly, state, logs)).toBe(135);
   });
-  it("week 3 set 3 = 0 reps → reset to 90%", () => {
-    expect(cycleEndTM(oly, state, [mainLog(2, 3, 0)])).toBe(120);
+  it("week 3 set 3 = 0 reps → hold, no reset (olympic-lifts.md O3-R2)", () => {
+    expect(cycleEndTM(oly, state, [mainLog(2, 3, 0)])).toBe(135);
   });
   it("ignores week 3 logs from other cycles", () => {
     expect(cycleEndTM(oly, state, [mainLog(1, 3, 3)])).toBe(135);
@@ -111,13 +95,13 @@ describe("cycleEndTM: week 3 set 3 decides next cycle", () => {
 });
 
 describe("olympic estimated completion", () => {
-  it("waves at +5 lb per cycle", () => {
-    // target TM 180, from 135 → 45 / 5 = 9
-    expect(wavesToTarget(oly, TM)).toBe(9);
+  it("cycles at +5 lb CURRENT per cycle", () => {
+    // CURRENT 150 → target 200: 50 / 5 = 10
+    expect(wavesToTarget(oly, TM)).toBe(10);
   });
-  it("date: 4 + 8×4 = 36 weeks from week 1", () => {
+  it("date: 4 + 9×4 = 40 weeks from week 1", () => {
     const from = new Date("2026-01-01");
     const d = estCompletionDate(oly, { standardId: "o1", trainingMax: TM, cycle: 1, week: 1 }, [], from)!;
-    expect(Math.round((d.getTime() - from.getTime()) / 86400000)).toBe(252);
+    expect(Math.round((d.getTime() - from.getTime()) / 86400000)).toBe(280);
   });
 });

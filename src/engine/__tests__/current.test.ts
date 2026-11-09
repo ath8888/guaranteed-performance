@@ -30,16 +30,16 @@ describe("lifts CURRENT", () => {
   });
 });
 
+// Olympic CURRENT is stored and moved only at cycle end (rules: olympic.table.test.ts)
 describe("olympic CURRENT", () => {
-  // TM 135 → CURRENT 150
-  it("capped triples can't beat TM / 0.9 (week 3: 130 × 3 → e1RM 143)", () => {
-    expect(currentValue(oly, bar(135, 4), [log(1, 3, 0, top(130, 3))])).toBe(150);
+  it("reads the stored CURRENT", () => {
+    expect(currentValue(oly, { ...bar(140, 2), current: 155 }, [])).toBe(155);
   });
-  it("same generic rule: a heavier logged top set raises it, week 1 ignored", () => {
-    expect(currentValue(oly, bar(135, 3), [log(1, 1, 0, top(160, 3)), log(1, 2, 0, top(150, 3))])).toBe(165);
+  it("states saved before CURRENT was stored fall back to TM / 0.9", () => {
+    expect(currentValue(oly, bar(135, 4), [])).toBe(150);
   });
-  it("resets at cycle end", () => {
-    expect(currentValue(oly, bar(140, 1, 2), [log(1, 2, 0, top(150, 3))])).toBe(155);
+  it("logged top sets don't move it mid-cycle", () => {
+    expect(currentValue(oly, { ...bar(135, 3), current: 150 }, [log(1, 2, 0, top(160, 3))])).toBe(150);
   });
 });
 

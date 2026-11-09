@@ -171,7 +171,7 @@ export default function ExecuteScreen({ navigation, route }: any) {
       reps: set.amrap ? (setReps[i] ?? set.reps) : set.reps,
     }));
 
-    if (standard!.category === "lifts") {
+    if (standard!.category === "lifts" || standard!.category === "olympic") {
       await LiftService.record(standard!, trainingState!, sessionIndex, sets);
       navigation.navigate("Plan", { selectedId: standard!.id });
       return;

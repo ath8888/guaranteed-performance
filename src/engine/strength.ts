@@ -58,7 +58,8 @@ export function currentAtCycleEnd(s: Standard, current: number, logs: SessionLog
   const w3 = logs.find((l) => l.cycle === cycle && l.week === 3 && l.sessionIndex === 0 && !l.skipped);
   const reps = w3?.sets?.[w3.sets.length - 1]?.reps;
   if (reps == null) return current;                                           // L5-R1
-  return current + INCREASE_LB[s.type];                                       // L5-R2 to R5
+  if (reps < MIN_REPS[3]) return current;                                     // L5-R2: miss → no increase
+  return current + INCREASE_LB[s.type];                                       // L5-R3 to R6
 }
 
 export const strengthEngine: StandardEngine = {

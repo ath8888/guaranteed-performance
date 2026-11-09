@@ -1,6 +1,6 @@
 # GuaranteedStandards — Lifts Category Decision Tables
 
-**Status:** v1.0 — Lifts engine built to this file (2026-11-08).
+**Status:** v1.1 — Lifts engine built to this file (2026-11-08).
 **Owner:** A.D.
 **Engine:** Lifts engine (`strength.ts`, `LiftService.ts`). Claude Code updates this engine when this file changes.
 
@@ -104,12 +104,13 @@ BBB is optional. The user may SKIP it. BBB never changes CURRENT.
 | ID | Lift | Condition | → CURRENT | Source |
 |---|---|---|---|---|
 | L5-R1 | Any | Week 3 + set not logged (or skipped) | Unchanged | `[AD]` |
-| L5-R2 | Squat | Week 3 + set logged | + 10 lb | `[W]` amount |
-| L5-R3 | Deadlift | Week 3 + set logged | + 10 lb | `[W]` amount |
-| L5-R4 | Bench press | Week 3 + set logged | + 5 lb | `[W]` amount |
-| L5-R5 | Overhead press | Week 3 + set logged | + 5 lb | `[W]` amount |
+| L5-R2 | Any | Week 3 + set below its minimum (0 reps) | Unchanged | `[AD]` |
+| L5-R3 | Squat | Week 3 + set met its minimum | + 10 lb | `[W]` amount |
+| L5-R4 | Deadlift | Week 3 + set met its minimum | + 10 lb | `[W]` amount |
+| L5-R5 | Bench press | Week 3 + set met its minimum | + 5 lb | `[W]` amount |
+| L5-R6 | Overhead press | Week 3 + set met its minimum | + 5 lb | `[W]` amount |
 
-The increase applies even when the week 3 + set was a miss. L4-R1 already cut CURRENT for that miss.
+A miss never leads to an increase. L4-R1 already cut CURRENT for that miss.
 
 ---
 
@@ -140,7 +141,7 @@ Given overhead press TM is 135 lb
 When the user opens week 4
 Then Set 2 is 70 lb (67.5 rounds up)
 
-**E6 — Cycle end (L5-R4)**
+**E6 — Cycle end (L5-R5)**
 Given bench CURRENT is 225 lb
 And the week 3 + set was logged
 When week 4 is finished
@@ -150,6 +151,12 @@ Then CURRENT becomes 230 lb and TM becomes 205 lb
 Given any main lift
 When the user opens week 4
 Then no supplemental sets are prescribed
+
+**E8 — No increase after a miss (L4-R1, L5-R2)**
+Given squat CURRENT is 335 lb
+When the user logs 285 × 0 on week 3
+Then CURRENT becomes 300 lb
+And when week 4 is finished, CURRENT stays 300 lb
 
 ---
 
@@ -177,4 +184,4 @@ Then no supplemental sets are prescribed
 | 2026-11-08 | L5 | Power clean table moved to olympic-lifts.md | A.D. decision |
 | 2026-11-08 | L1-R2 | Removed rep-max start; START is the only input | A.D.: simpler |
 | 2026-11-08 | L1, L4, L5 | CURRENT becomes the source of truth. TM = 90% of CURRENT, always. + sets move CURRENT at once (miss −10%, higher estimate replaces it, reps capped at 10). Cycle end adds +10 / +5 to CURRENT if week 3 was logged. Old L4 (TM progression and reset) replaced. | A.D.: simpler |
-
+| 2026-11-08 | L5-R2 | Added: week 3 + set miss → no cycle-end increase. Increase rows renumbered L5-R3 to R6. | A.D.: a miss never leads to a raise |

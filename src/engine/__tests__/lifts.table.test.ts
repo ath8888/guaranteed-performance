@@ -73,10 +73,11 @@ describe("L5 — CURRENT at cycle end", () => {
     expect(end("squat", [topSet(1, 5), topSet(2, 3)])).toBe(300);
     expect(end("squat", [topSet(3, 1, { skipped: true })])).toBe(300);
   });
-  it("L5-R2: squat → +10", () => { expect(end("squat", [topSet(3, 1)])).toBe(310); });
-  it("L5-R3: deadlift → +10", () => { expect(end("deadlift", [topSet(3, 1)])).toBe(310); });
-  it("L5-R4: bench → +5", () => { expect(end("bench", [topSet(3, 1)])).toBe(305); });
-  it("L5-R5: overhead press → +5", () => { expect(end("ohp", [topSet(3, 0)])).toBe(305); });
+  it("L5-R2: week 3 + set missed (0 reps) → unchanged", () => { expect(end("ohp", [topSet(3, 0)])).toBe(300); });
+  it("L5-R3: squat → +10", () => { expect(end("squat", [topSet(3, 1)])).toBe(310); });
+  it("L5-R4: deadlift → +10", () => { expect(end("deadlift", [topSet(3, 1)])).toBe(310); });
+  it("L5-R5: bench → +5", () => { expect(end("bench", [topSet(3, 1)])).toBe(305); });
+  it("L5-R6: overhead press → +5", () => { expect(end("ohp", [topSet(3, 1)])).toBe(305); });
   it("only this cycle's week 3 counts", () => { expect(end("squat", [topSet(3, 1, { cycle: 0 })])).toBe(300); });
   it("engine cycleEndTM = 90% of the new CURRENT", () => {
     const t: TrainingState = { standardId: "x", trainingMax: 300, current: 335, cycle: 1, week: 4 };
@@ -100,4 +101,8 @@ describe("Examples", () => {
     expect(currentAtCycleEnd(std("bench"), 225, [topSet(3, 2)], 1)).toBe(230);
   });
   it("E7: week 4 has no BBB", () => { expect(liftWeek(4, 300).some((s) => s.kind === "bbb")).toBe(false); });
+  it("E8: a week 3 miss cuts CURRENT and blocks the cycle-end increase", () => {
+    const c = currentAfterTopSet(335, 3, 285, 0);
+    expect([c, currentAtCycleEnd(std("squat"), c, [topSet(3, 0)], 1)]).toEqual([300, 300]);
+  });
 });
