@@ -30,6 +30,7 @@ import { SessionService } from "../services/SessionService";
 import { CalisthenicsService } from "../services/CalisthenicsService";
 import { cardLock, isStalled } from "../engine/calisthenics";
 import { RunService } from "../services/RunService";
+import { LiftService } from "../services/LiftService";
 import { fmtDistance, fmtPace, fmtTime, speedRepText } from "../engine/run";
 
 const LAST_SELECTED_KEY = "plan:lastSelectedId";
@@ -228,6 +229,11 @@ export default function PlanScreen({ navigation, route }: any) {
     if (selected!.category === "run") {
       // Logged as skipped: counts toward finishing the week; ladder counter untouched.
       await RunService.record(selected!, trainingState, card.sessionIndex, undefined, true);
+      await loadForId(selectedId);
+      return;
+    }
+    if (selected!.category === "lifts") {
+      await LiftService.record(selected!, trainingState, card.sessionIndex, undefined, true);
       await loadForId(selectedId);
       return;
     }

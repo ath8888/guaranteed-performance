@@ -1,5 +1,8 @@
 import { roundLb, type PlannedSet, type Session } from "./shared";
 import type { StandardEngine } from "./registry";
+import type { SessionLog } from "./types";
+
+// Decision table: decision-tables/olympic-lifts.md
 
 // Olympic Lift category: 5/3/1-style waves, all triples (no all-out sets), main lift only.
 // Percentages are of the training max (TM = 90% of 1RM).
@@ -31,6 +34,11 @@ export function olympicWeek(week: 1 | 2 | 3 | 4, tm: number): Session[] {
   return [main];
 }
 
+function topSetReps(logs: SessionLog[], cycle: number, week: number): number | undefined {
+  const main = logs.find((l) => l.cycle === cycle && l.week === week && l.sessionIndex === 0 && !l.skipped);
+  return main?.sets?.[main.sets.length - 1]?.reps;
+}
+
 export const olympicEngine: StandardEngine = {
   buildWeek(s, t) { return olympicWeek(t.week, t.trainingMax); },
   initTrainingMax(s) { return roundLb(s.start * 0.9); },
@@ -41,6 +49,17 @@ export const olympicEngine: StandardEngine = {
     if (reps === 0) return roundLb(currentTM * 0.9);
     if (reps < REPS) return currentTM;
     return olympicEngine.progressTrainingMax(s, currentTM);
+  },
+  // O3: rows checked in order R1 → R4. Weeks 1–3 top sets are all judged.
+  cycleEndTM(s, t, logs) {
+    const w3 = topSetReps(logs, t.cycle, 3);
+    if (w3 == null) return t.trainingMax;                          // O3-R1: week 3 not logged → hold
+    if (w3 === 0) return roundLb(t.trainingMax * 0.9);             // O3-R2: 0 reps on week 3 → reset
+    for (const w of [1, 2, 3]) {
+      const reps = topSetReps(logs, t.cycle, w);
+      if (reps != null && reps < REPS) return t.trainingMax;       // O3-R3: any logged top set under 3 → hold
+    }
+    return olympicEngine.progressTrainingMax(s, t.trainingMax);    // O3-R4: all triples → +5
   },
   wavesToTarget(s, trainingMax) {
     return Math.ceil((s.target * 0.9 - trainingMax) / PER_WAVE);

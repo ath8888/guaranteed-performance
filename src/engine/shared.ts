@@ -12,7 +12,9 @@ export const REP_SCHEME = {
   4: [5, 5, 5],
 } as const;
 
-export function roundLb(x: number) { return Math.round(x / 5) * 5; }
+// Nearest 5 lb, exact halves round up (Lifts table, Shared definitions).
+// Trims float noise first so 175 × 0.7 (= 122.4999…) rounds as 122.5 → 125.
+export function roundLb(x: number) { return Math.round(Math.round(x * 1e6) / 1e6 / 5) * 5; }
 
 export function fmtValue(v: number): string { return `${v} lb`; }
 

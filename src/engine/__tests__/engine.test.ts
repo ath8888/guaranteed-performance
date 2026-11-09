@@ -93,17 +93,9 @@ describe("liftWeek", () => {
 });
 
 describe("wendlerNextTM", () => {
-  it("bench: +5 lb when amrap > 1", () => {
-    expect(wendlerNextTM(bench, 180, 5)).toBe(185);
-  });
-  it("squat: +10 lb when amrap > 1", () => {
-    expect(wendlerNextTM(squat, 270, 5)).toBe(280);
-  });
-  it("no progress when amrap = 1", () => {
-    expect(wendlerNextTM(bench, 180, 1)).toBe(180);
-  });
-  it("resets TM to 90% when amrap = 0", () => {
-    expect(wendlerNextTM(bench, 180, 0)).toBe(160); // roundLb(180 * 0.9) = roundLb(162) = 160
+  it("lifts: TM moves only through CURRENT (lifts.md), so nextTM holds", () => {
+    expect(wendlerNextTM(bench, 180, 5)).toBe(180);
+    expect(wendlerNextTM(squat, 270, 0)).toBe(270);
   });
 });
 
@@ -115,13 +107,13 @@ describe("wavesToTarget", () => {
   it("returns 0 when above target", () => {
     expect(wavesToTarget(bench, 300)).toBe(0);
   });
-  it("calculates TM increases needed for bench (5lb/wave)", () => {
-    // TM 180, target TM 270 → 90 / 5 = 18 waves
-    expect(wavesToTarget(bench, 180)).toBe(18);
+  it("calculates cycles needed for bench (CURRENT +5/cycle)", () => {
+    // CURRENT 200 → target 300: 100 / 5 = 20 cycles
+    expect(wavesToTarget(bench, 180)).toBe(20);
   });
-  it("calculates TM increases needed for squat (10lb/wave)", () => {
-    // TM 270, target TM 360 → 90 / 10 = 9 waves
-    expect(wavesToTarget(squat, 270)).toBe(9);
+  it("calculates cycles needed for squat (CURRENT +10/cycle)", () => {
+    // CURRENT 300 → target 400: 100 / 10 = 10 cycles
+    expect(wavesToTarget(squat, 270)).toBe(10);
   });
   it("needs at least 1 wave when just short of target", () => {
     // TM 266 → est 1RM 295 < 300; gap to 270 is 4lb → 1 wave
@@ -138,12 +130,12 @@ describe("estCompletionDate", () => {
     expect(estCompletionDate(bench, state(270, 2), [], from)).toBeNull();
   });
   it("bench at week 1: finish this cycle + 4 weeks per further wave", () => {
-    // 18 waves → 4 + 17×4 = 72 weeks = 504 days
-    expect(daysFrom(estCompletionDate(bench, state(180, 1), [], from)!)).toBe(504);
+    // 20 cycles → 4 + 19×4 = 80 weeks = 560 days
+    expect(daysFrom(estCompletionDate(bench, state(180, 1), [], from)!)).toBe(560);
   });
   it("squat mid-cycle (week 3) counts only the weeks left in this cycle", () => {
-    // 9 waves → 2 + 8×4 = 34 weeks = 238 days
-    expect(daysFrom(estCompletionDate(squat, state(270, 3), [], from)!)).toBe(238);
+    // 10 cycles → 2 + 9×4 = 38 weeks = 266 days
+    expect(daysFrom(estCompletionDate(squat, state(270, 3), [], from)!)).toBe(266);
   });
   it("last wave during deload week completes in 1 week", () => {
     // TM 265 → 1 wave; week 4 → 1 week = 7 days

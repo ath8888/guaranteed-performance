@@ -25,6 +25,7 @@ import { ENGINES } from "../engine/registry";
 import { cycleEndTM } from "../engine/progression";
 import { CalisthenicsService } from "../services/CalisthenicsService";
 import { RunService } from "../services/RunService";
+import { LiftService } from "../services/LiftService";
 import { fmtDistance, fmtPace, fmtTime, fmtTimeDigits, parseTime, speedRepText } from "../engine/run";
 import type { Session } from "../engine/shared";
 import { StandardService } from "../services/StandardService";
@@ -169,6 +170,12 @@ export default function ExecuteScreen({ navigation, route }: any) {
       weight: isStrengthBlock && load !== null ? load : set.weight,
       reps: set.amrap ? (setReps[i] ?? set.reps) : set.reps,
     }));
+
+    if (standard!.category === "lifts") {
+      await LiftService.record(standard!, trainingState!, sessionIndex, sets);
+      navigation.navigate("Plan", { selectedId: standard!.id });
+      return;
+    }
 
     if (isCal) {
       await CalisthenicsService.record(standard!, trainingState!, sessionIndex, sets);

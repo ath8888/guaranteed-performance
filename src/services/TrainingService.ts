@@ -26,8 +26,8 @@ export const TrainingService = {
     await AsyncStorage.removeItem(key(standardId));
   },
 
-  async init(standardId: string, trainingMax: number, cal?: CalisthenicsState, run?: RunState): Promise<TrainingState> {
-    const state: TrainingState = { standardId, trainingMax, cycle: 1, week: 1, ...(cal ? { cal } : {}), ...(run ? { run } : {}) };
+  async init(standardId: string, trainingMax: number, cal?: CalisthenicsState, run?: RunState, current?: number): Promise<TrainingState> {
+    const state: TrainingState = { standardId, trainingMax, cycle: 1, week: 1, ...(current != null ? { current } : {}), ...(cal ? { cal } : {}), ...(run ? { run } : {}) };
     await TrainingService.save(state);
     return state;
   },

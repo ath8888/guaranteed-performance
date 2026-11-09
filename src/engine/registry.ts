@@ -1,4 +1,4 @@
-import type { Standard, StandardType, TrainingState } from "./types";
+import type { SessionLog, Standard, StandardType, TrainingState } from "./types";
 import type { Session } from "./shared";
 
 export interface StandardEngine {
@@ -7,6 +7,8 @@ export interface StandardEngine {
   progressTrainingMax(s: Standard, current: number): number;
   nextTM(s: Standard, currentTM: number, amrapReps?: number): number;
   wavesToTarget(s: Standard, trainingMax: number): number;
+  // Optional: engine-specific end-of-cycle TM rule (default: week 3 top set via nextTM)
+  cycleEndTM?(s: Standard, t: TrainingState, logs: SessionLog[]): number;
   // Optional overrides for engines not driven by a barbell training max (e.g. calisthenics)
   currentValue?(s: Standard, t: TrainingState): number;
   estWeeksToTarget?(s: Standard, t: TrainingState, current: number): number; // from the start of the current week; 0 = target reached

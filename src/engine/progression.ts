@@ -17,6 +17,8 @@ export function wendlerNextTM(s: Standard, currentTM: number, amrapReps?: number
 // TM for the next cycle: decided only by the reps logged on this cycle's week 3 main-lift top set.
 // No week 3 log (or no reps) → TM holds.
 export function cycleEndTM(s: Standard, t: TrainingState, logs: SessionLog[]): number {
+  const engine = ENGINES[s.type];
+  if (engine.cycleEndTM) return engine.cycleEndTM(s, t, logs);
   const week3Main = logs.find((l) => l.cycle === t.cycle && l.week === 3 && l.sessionIndex === 0);
   const lastSet = week3Main?.sets?.[week3Main.sets.length - 1];
   return wendlerNextTM(s, t.trainingMax, lastSet?.reps);

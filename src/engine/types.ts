@@ -43,6 +43,7 @@ export interface Standard {
 export interface TrainingState {
   standardId: string;
   trainingMax: number;
+  current?: number;        // lifts only: CURRENT (lb). trainingMax is always 90% of it (lifts.md)
   cycle: number;
   week: 1 | 2 | 3 | 4;
   cal?: CalisthenicsState; // calisthenics standards only (trainingMax unused there)

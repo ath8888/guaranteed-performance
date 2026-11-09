@@ -94,9 +94,9 @@ describe("cycleEndTM: week 3 set 3 decides next cycle", () => {
     sets: [{ weight: 100, reps: 3 }, { weight: 115, reps: 3 }, { weight: 130, reps: set3Reps }],
   });
 
-  it("week 3 set 3 = 3 reps → +5, even if weeks 1–2 missed reps", () => {
+  it("week 3 set 3 = 3 reps but weeks 1–2 missed reps → hold (olympic-lifts.md O3-R3)", () => {
     const logs = [mainLog(2, 1, 0), mainLog(2, 2, 1), mainLog(2, 3, 3)];
-    expect(cycleEndTM(oly, state, logs)).toBe(140);
+    expect(cycleEndTM(oly, state, logs)).toBe(135);
   });
   it("week 3 set 3 = 2 reps → hold, even if weeks 1–2 were perfect", () => {
     const logs = [mainLog(2, 1, 3), mainLog(2, 2, 3), mainLog(2, 3, 2)];

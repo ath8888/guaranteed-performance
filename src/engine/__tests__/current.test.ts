@@ -17,33 +17,16 @@ const log = (cycle: number, week: number, sessionIndex: number, sets?: SetActual
 });
 const top = (weight: number, reps: number): SetActual[] => [{ weight: 100, reps: 5 }, { weight: 120, reps: 5 }, { weight, reps }];
 
+// Lifts CURRENT is stored and moved by LiftService (rules: lifts.table.test.ts)
 describe("lifts CURRENT", () => {
-  // TM 180 → CURRENT 200
-  it("starts at TM / 0.9", () => {
+  it("reads the stored CURRENT", () => {
+    expect(currentValue(bench, { ...bar(190, 2), current: 215 }, [])).toBe(215);
+  });
+  it("states saved before CURRENT was stored fall back to TM / 0.9", () => {
     expect(currentValue(bench, bar(180, 2), [])).toBe(200);
   });
-  it("rises mid-cycle from a strong week 2 AMRAP (160 × 10 → e1RM 213 → 215)", () => {
-    expect(currentValue(bench, bar(180, 3), [log(1, 2, 0, top(160, 10))])).toBe(215);
-  });
-  it("a weak later set doesn't pull it down", () => {
-    const logs = [log(1, 2, 0, top(160, 10)), log(1, 3, 0, top(170, 1))];
-    expect(currentValue(bench, bar(180, 4), logs)).toBe(215);
-  });
-  it("never drops below TM / 0.9 on a weak set", () => {
-    expect(currentValue(bench, bar(180, 3), [log(1, 2, 0, top(160, 3))])).toBe(200);
-  });
-  it("ignores week 1, the deload, BBB and skipped logs", () => {
-    const logs = [
-      log(1, 1, 0, top(155, 15)),
-      log(1, 4, 0, top(110, 20)),
-      log(1, 2, 1, [{ weight: 200, reps: 10 }]),
-      { ...log(1, 3, 0, top(170, 12)), skipped: true },
-    ];
-    expect(currentValue(bench, bar(180, 4), logs)).toBe(200);
-  });
-  it("resets at cycle end to the new TM", () => {
-    const logs = [log(1, 2, 0, top(160, 10)), log(1, 3, 0, top(170, 8))];
-    expect(currentValue(bench, bar(185, 1, 2), logs)).toBe(205);
+  it("logs alone don't move it (only LiftService does)", () => {
+    expect(currentValue(bench, { ...bar(180, 3), current: 200 }, [log(1, 2, 0, top(160, 10))])).toBe(200);
   });
 });
 
@@ -96,14 +79,13 @@ describe("estimated completion date is anchored to the plan week", () => {
     const tue = estCompletionDate(bench, t, week1, day(1))!;
     const sun = estCompletionDate(bench, t, week1, day(6))!;
     expect(sun.getTime()).toBe(tue.getTime());
-    // 18 waves → 3 + 17×4 = 71 weeks from the week start
-    expect(Math.round((tue.getTime() - weekStart.getTime()) / 86400000)).toBe(497);
+    // 20 cycles → 3 + 19×4 = 79 weeks from the week start
+    expect(Math.round((tue.getTime() - weekStart.getTime()) / 86400000)).toBe(553);
   });
   it("lifts: a higher CURRENT (implied TM) brings it earlier", () => {
-    const t = bar(180, 3);
     const logs = [...week1, log(1, 2, 0, top(160, 3), day(3).toISOString()), log(1, 2, 1, undefined, day(3).toISOString())];
-    const before = estCompletionDate(bench, t, logs, day(4))!;
-    const after = estCompletionDate(bench, t, [...logs.slice(0, 2), log(1, 2, 0, top(160, 10), day(3).toISOString()), logs[3]], day(4))!;
+    const before = estCompletionDate(bench, { ...bar(180, 3), current: 200 }, logs, day(4))!;
+    const after = estCompletionDate(bench, { ...bar(195, 3), current: 215 }, logs, day(4))!;
     expect(after.getTime()).toBeLessThan(before.getTime());
   });
   it("falling behind (week overdue) pushes it later", () => {
