@@ -59,13 +59,12 @@ describe("push-ups CURRENT", () => {
     expect(t.cal!.max).toBe(51);
     expect(currentValue(pu, t)).toBe(55);
   });
-  it("resets at cycle end to the new cycle's first AMRAP", () => {
+  it("does not reset at cycle end (calisthenics.md C7)", () => {
     const amraps = [{ date: "a", reps: 55, cycle: 1 }, { date: "b", reps: 50, cycle: 2 }];
-    expect(currentValue(pu, st({ max: 50, best: 55, amraps }, 2))).toBe(50);
+    expect(currentValue(pu, st({ max: 50, best: 55, amraps }, 2))).toBe(55);
   });
-  it("before this cycle's first AMRAP (or with pre-F16 entries) it's the latest max", () => {
-    expect(currentValue(pu, st({ max: 48, best: 55, amraps: [{ date: "a", reps: 55, cycle: 1 }] }, 2))).toBe(48);
-    expect(currentValue(pu, st({ max: 48, best: 55, amraps: [{ date: "a", reps: 55 }] }))).toBe(48);
+  it("is the stored CURRENT, also for entries saved before F16", () => {
+    expect(currentValue(pu, st({ max: 48, best: 55, amraps: [{ date: "a", reps: 55 }] }))).toBe(55);
   });
 });
 

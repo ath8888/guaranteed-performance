@@ -28,7 +28,7 @@
 |---|---|
 | Lifts | `lifts.md` |
 | Olympic | `olympic-lifts.md` |
-| Calisthenics (push-ups) | not written yet |
+| Calisthenics (push-ups) | `calisthenics.md` |
 | Run | not written yet |
 
 ---

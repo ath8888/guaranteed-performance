@@ -104,10 +104,10 @@ describe("strength day", () => {
     expect(apply(st(), "strength", [{ weight: 40, reps: 6 }]).load).toBe(40);
     expect(apply(st(), "strength", [{ weight: 40, reps: 10 }]).load).toBe(45);
   });
-  it("records reps and opens endurance day after 2 full rest days (Mon → Thu)", () => {
+  it("records reps; no rest-day lock (calisthenics.md v0.3)", () => {
     const c = apply(st(), "strength", [{ weight: 35, reps: 7 }]);
     expect(c.lastStrengthReps).toBe(7);
-    expect(new Date(c.nextOpensAt!)).toEqual(new Date(2026, 9, 29));
+    expect("nextOpensAt" in c).toBe(false);
   });
 });
 
@@ -131,15 +131,10 @@ describe("endurance day AMRAP", () => {
 });
 
 describe("back-off sets", () => {
-  it("logging opens next week's strength day after 3 full rest days (Thu → Mon)", () => {
-    const c = apply(st(), "backoff", [{ reps: 20 }, { reps: 20 }], false, THU_6PM);
-    expect(new Date(c.nextOpensAt!)).toEqual(new Date(2026, 10, 2));
-  });
-  it("skipping does the same and changes nothing else", () => {
+  it("logging or skipping changes nothing (no rest-day lock)", () => {
     const t = st({ stallCount: 1 });
-    const c = apply(t, "backoff", undefined, true, THU_6PM);
-    expect(new Date(c.nextOpensAt!)).toEqual(new Date(2026, 10, 2));
-    expect(c.stallCount).toBe(1);
+    expect(apply(t, "backoff", [{ reps: 20 }, { reps: 20 }], false, THU_6PM)).toEqual(t.cal);
+    expect(apply(t, "backoff", undefined, true, THU_6PM)).toEqual(t.cal);
   });
 });
 
@@ -169,48 +164,39 @@ describe("stall levers: volume first", () => {
   });
 });
 
-describe("card order and spacing (cardLock)", () => {
-  const t = st();
-  const sessions = calisthenicsWeek(t);
+describe("card order (cardLock), no rest days", () => {
   const logged = (...done: number[]) => (i: number) => done.includes(i);
   it("a card waits for every earlier card", () => {
-    expect(cardLock(t.cal!, sessions, 1, logged())).toEqual({});
-    expect(cardLock(t.cal!, sessions, 2, logged(0))).toEqual({});
+    expect(cardLock(logged(), 1)).toEqual({});
+    expect(cardLock(logged(0), 2)).toEqual({});
   });
-  it("first card of a training day waits for its open date", () => {
-    const c = { ...t.cal!, nextOpensAt: new Date(2026, 9, 29).toISOString() };
-    expect(cardLock(c, sessions, 1, logged(0), MON_6PM)).toEqual({ date: new Date(2026, 9, 29) });
-    expect(cardLock(c, sessions, 1, logged(0), THU_6PM)).toBeNull();
-  });
-  it("back-off sets open right after the AMRAP (same day)", () => {
-    const c = { ...t.cal!, nextOpensAt: new Date(2026, 10, 2).toISOString() };
-    expect(cardLock(c, sessions, 2, logged(0, 1), THU_6PM)).toBeNull();
-  });
-  it("first week's strength day is open immediately", () => {
-    expect(cardLock(t.cal!, sessions, 0, logged())).toBeNull();
+  it("a card opens as soon as the earlier cards are logged", () => {
+    expect(cardLock(logged(), 0)).toBeNull();
+    expect(cardLock(logged(0), 1)).toBeNull();
+    expect(cardLock(logged(0, 1), 2)).toBeNull();
   });
 });
 
 describe("estimated completion", () => {
   it("reached → 0 weeks, no date", () => {
-    expect(calisthenicsWeeksToTarget(pu, st({ max: 60 }))).toBe(0);
-    expect(estCompletionDate(pu, st({ max: 60 }))).toBeNull();
+    expect(calisthenicsWeeksToTarget(pu, st({ max: 60, best: 60 }))).toBe(0);
+    expect(estCompletionDate(pu, st({ max: 60, best: 60 }))).toBeNull();
   });
-  it("fewer than 2 AMRAPs: +10% per 4 weeks (50 → 60 ≈ 8 weeks)", () => {
-    expect(calisthenicsWeeksToTarget(pu, st())).toBe(8);
+  it("fewer than 2 AMRAPs: +5% per 4 weeks (50 → 60 ≈ 15 weeks)", () => {
+    expect(calisthenicsWeeksToTarget(pu, st())).toBe(15);
   });
   it("2+ AMRAPs: average weekly gain (50, 52, 54 → +2/week; 54 → 60 = 3 weeks)", () => {
     const amraps = [50, 52, 54].map((reps, i) => ({ date: `d${i}`, reps }));
-    expect(calisthenicsWeeksToTarget(pu, st({ max: 54, amraps }))).toBe(3);
+    expect(calisthenicsWeeksToTarget(pu, st({ max: 54, best: 54, amraps }))).toBe(3);
   });
-  it("not improving → falls back to +10% per 4 weeks", () => {
+  it("not improving → falls back to +5% per 4 weeks", () => {
     const amraps = [50, 50].map((reps, i) => ({ date: `d${i}`, reps }));
-    expect(calisthenicsWeeksToTarget(pu, st({ amraps }))).toBe(8);
+    expect(calisthenicsWeeksToTarget(pu, st({ amraps }))).toBe(15);
   });
   it("estCompletionDate uses the push-up estimate", () => {
     const from = new Date("2026-01-01");
     const d = estCompletionDate(pu, st(), [], from)!;
-    expect(Math.round((d.getTime() - from.getTime()) / 86400000)).toBe(56);
+    expect(Math.round((d.getTime() - from.getTime()) / 86400000)).toBe(105);
   });
 });
 
@@ -248,8 +234,8 @@ describe("shared helpers", () => {
   it("a new program starts with a 15 lb vest", () => {
     expect(CALISTHENICS_CONFIG.startLoad).toBe(15);
   });
-  it("currentValue: latest AMRAP for push-ups, est. 1RM for barbell lifts", () => {
-    expect(currentValue(pu, st({ max: 47, best: 52 }))).toBe(47);
+  it("currentValue: stored CURRENT (highest AMRAP) for push-ups, est. 1RM for barbell lifts", () => {
+    expect(currentValue(pu, st({ max: 47, best: 52 }))).toBe(52);
     const bench: Standard = { ...pu, id: "b", type: "bench", category: "lifts", start: 200, target: 300 };
     expect(currentValue(bench, { standardId: "b", trainingMax: 180, cycle: 1, week: 1 })).toBe(200);
   });

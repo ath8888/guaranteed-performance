@@ -2,24 +2,22 @@ import type { PlannedSet, Session } from "./shared";
 import type { StandardEngine } from "./registry";
 import type { CalisthenicsState, SetActual, Standard, TrainingState } from "./types";
 
-// Calisthenics category (Push-ups) — one Strength day and one Endurance day per week.
-//   Strength day  — 1 weighted-vest set to failure. More than 8 reps → +5 lb; under 5 → hold.
-//   Endurance day — 1 bodyweight AMRAP (= the new max), then back-off sets at 40% of today's AMRAP.
-//   Stalls        — AMRAP doesn't beat the best so far for 2 weeks → back-off sets become Recommended;
-//                   4 weeks → a 3rd back-off set. Any new best resets both. Volume is the first lever.
-//   Spacing       — 2 full rest days after strength day, 3 after endurance day (Mon / Thu / Mon).
+// Decision table: decision-tables/calisthenics.md
+// Calisthenics category (Push-ups) — one Strength day (A) and one Endurance day (B) per week.
+//   Day A — 1 weighted-vest set to failure. More than 8 reps → +5 lb. Never changes CURRENT.
+//   Day B — 1 bodyweight AMRAP (= Max), then back-off sets at 40% of today's AMRAP.
+//   CURRENT — stored as cal.best: the highest Day B AMRAP ever. Only a higher AMRAP raises it; nothing lowers it.
+//   Stalls — AMRAP doesn't beat CURRENT 2 times → back-off sets Recommended; 4 → a 3rd set. A new CURRENT resets both.
+//   No rest days — cards go in order, each opens as soon as the one before it is logged.
 export const CALISTHENICS_CONFIG = {
   startLoad: 15,          // lb vest for a new program (user can change it on the strength day)
   loadStep: 5,            // lb added to the vest
   addLoadAbove: 8,        // strength reps > this → +loadStep
-  holdLoadBelow: 5,       // strength reps < this → hold (documented; holding is the default anyway)
   backoffPct: 0.4,        // back-off set reps = 40% of today's AMRAP
   backoffSets: 2,
   stallsPerLever: 2,      // 2 stalls → back-offs Recommended; 4 → +1 back-off set
   stalledNoteAt: 6,       // stalls continue after both levers → "Stalled" note
-  restAfterStrength: 2,   // full rest days before endurance day
-  restAfterEndurance: 3,  // full rest days before next week's strength day
-  defaultGainPer4Weeks: 0.1, // estimate before 2 AMRAPs exist: +10% of max per 4 weeks
+  defaultGainPer4Weeks: 0.05, // C8-R3: estimate before 2 AMRAPs exist: +5% per 4 weeks
 };
 
 type Config = typeof CALISTHENICS_CONFIG;
@@ -101,13 +99,6 @@ export function calisthenicsWeek(t: TrainingState, cfg: Config = CALISTHENICS_CO
   return [strength, endurance, backoff];
 }
 
-const localMidnightPlus = (d: Date, days: number) => {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  x.setDate(x.getDate() + days);
-  return x;
-};
-
 // Apply one logged (or skipped) card to the push-up state. Pure — the caller saves the result.
 export function applyCalisthenicsResult(
   t: TrainingState,
@@ -125,55 +116,37 @@ export function applyCalisthenicsResult(
       if (set?.reps != null) {
         c.load = set.weight ?? c.load; // user may edit the load each session
         c.lastStrengthReps = set.reps;
-        if (set.reps > cfg.addLoadAbove) c.load += cfg.loadStep;
+        if (set.reps > cfg.addLoadAbove) c.load += cfg.loadStep;     // C3-R2
       }
     }
-    c.nextOpensAt = localMidnightPlus(today, cfg.restAfterStrength + 1).toISOString();
     return c;
   }
 
   if (session.kind === "endurance") {
     const reps = sets?.[0]?.reps;
     if (skipped || reps == null) return c;
-    c.stallCount = reps > c.best ? 0 : c.stallCount + 1; // a new best resets both levers
-    c.best = Math.max(c.best, reps);
+    c.stallCount = reps > c.best ? 0 : c.stallCount + 1; // C4-R2 / R3: a new CURRENT resets both levers
+    c.best = Math.max(c.best, reps);                     // CURRENT never drops
     c.max = reps;
     c.amrapWeek = weekKey(t);
     c.amraps.push({ date: today.toISOString().slice(0, 10), reps, cycle: t.cycle });
     return c;
   }
 
-  if (session.kind === "backoff") {
-    // Logged for the record; back-off sets don't change the plan. Next week's strength day opens after rest.
-    c.nextOpensAt = localMidnightPlus(today, cfg.restAfterEndurance + 1).toISOString();
-    return c;
-  }
-
+  // Back-off sets are logged for the record; they don't change the plan.
   return c;
 }
 
-// Card availability: cards go in order; the first card of a new training day waits for nextOpensAt.
-// Returns null when the card is open, { } when an earlier card isn't done, or { date } when it opens later.
-export function cardLock(
-  c: CalisthenicsState,
-  sessions: Session[],
-  idx: number,
-  isLogged: (i: number) => boolean,
-  now = new Date()
-): { date?: Date } | null {
+// Card availability (C2): cards go in order, no rest days.
+// Returns null when the card is open, or { } when an earlier card isn't done.
+export function cardLock(isLogged: (i: number) => boolean, idx: number): { date?: Date } | null {
   for (let i = 0; i < idx; i++) if (!isLogged(i)) return {};
-  const startsDay = idx === 0 || sessions[idx].sessionNo !== sessions[idx - 1].sessionNo;
-  if (startsDay && c.nextOpensAt && now < new Date(c.nextOpensAt)) return { date: new Date(c.nextOpensAt) };
   return null;
 }
 
-// CURRENT: best endurance AMRAP this cycle — only rises within a cycle, resets at cycle end.
-// Until this cycle's first AMRAP (or for entries saved before F16, which have no cycle) it's the latest max.
+// C7: CURRENT is stored (cal.best) — the highest Day B AMRAP ever. No reset at cycle end.
 export function calisthenicsCurrent(s: Standard, t: TrainingState): number {
-  const c = t.cal;
-  if (!c) return s.start;
-  const inCycle = c.amraps.filter((a) => a.cycle === t.cycle).map((a) => a.reps);
-  return inCycle.length ? Math.max(...inCycle) : c.max;
+  return t.cal ? t.cal.best : s.start;
 }
 
 // Weeks until CURRENT reaches target (0 = reached): average weekly AMRAP gain once there are 2+,

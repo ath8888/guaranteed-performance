@@ -86,7 +86,7 @@ export function buildCards(
   // Returns null when open, or { date? } when locked (no date = an earlier card isn't done).
   function lockedUntil(idx: number): { date?: Date } | null {
     if (!state.cal) return null;
-    return cardLock(state.cal, sessions, idx, isLogged);
+    return cardLock(isLogged, idx);
   }
 
   const cards: CardData[] = sessions.map((session, idx) => {

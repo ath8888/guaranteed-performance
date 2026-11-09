@@ -70,7 +70,6 @@ export interface CalisthenicsState {
   stallCount: number;         // consecutive endurance days without a new best (drives volume levers)
   amraps: { date: string; reps: number; cycle?: number }[]; // cycle: added in F16 (older entries have none)
   amrapWeek?: string;         // "cycle-week" of the latest AMRAP (back-off sets use it that week)
-  nextOpensAt?: string;       // ISO local midnight when the next training day's first card opens
 }
 
 export interface CheckIn {
