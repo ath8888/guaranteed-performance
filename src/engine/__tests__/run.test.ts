@@ -232,10 +232,10 @@ describe("non-step paces", () => {
 
 describe("time trial", () => {
   const tt = (t: TrainingState, time: number) => applyRunResult(r800, t, trial(r800, t), [{ time }], false, DAY);
-  it("sets CURRENT either way and is recorded", () => {
+  it("slower than CURRENT holds it (run.md R6-R3); the time is still recorded", () => {
     const t = st(r800, { current: 153 }, 4);
     const r = tt(t, 155);
-    expect(r.current).toBe(155);
+    expect(r.current).toBe(153);
     expect(r.trials).toEqual([{ date: "2026-11-02", time: 155, cycle: 1 }]);
   });
   it("faster than CURRENT counts +1 toward a step", () => {

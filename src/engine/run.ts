@@ -2,14 +2,15 @@ import type { PlannedSet, Session } from "./shared";
 import type { StandardEngine } from "./registry";
 import type { RunState, SetActual, Standard, StandardType, TrainingState } from "./types";
 
+// Decision table: decision-tables/run.md
 // Run category (800m / 1.5 / 3 / 5 mile) — 2 × Session A + 1 × Session B — Zone 2 per week, any order.
 //   Session A     — ≤1.5 mi: Speed + Threshold · >1.5 mi: Threshold + Speed (named part first).
 //   Pace ladder   — the race-pace reps (≤1.5 mi speed, >1.5 mi threshold). Starts at START race pace.
 //                   2 qualifying sessions in a row (every ladder rep at or under target) → −15 s/mi.
 //                   A miss restarts the counter; an average past the next step jumps to the fastest step run.
-//   Week 4        — Session A — Time Trial (sets CURRENT; faster than CURRENT counts toward a step,
-//                   slower restarts the counter) + a deload Session A (doesn't count) + shorter Zone 2.
-//   CURRENT       — race time: set by time trials, moved by half of each ladder step in between.
+//   Week 4        — Session A — Time Trial (faster than CURRENT sets it and counts toward a step;
+//                   equal or slower holds CURRENT, restarts the counter) + a deload Session A (doesn't count) + shorter Zone 2.
+//   CURRENT       — race time: set by a faster time trial, moved by half of each ladder step; never gets worse.
 //   Other paces   — from CURRENT (Riegel); logged faster than planned → personal adjustment. Zone 2 never adjusts.
 export const RUN_CONFIG = {
   step: 15,                // s/mi per ladder step
@@ -232,15 +233,15 @@ export function applyRunResult(
   if (session.kind === "trial") {
     const time = sets[0]?.time;
     if (time == null) return r;
-    if (time < r.current) {
+    r.trials.push({ date, time, cycle: t.cycle });                 // every trial time is saved
+    if (time < r.current) {                                        // R6-R2: faster → sets CURRENT
       r.streak += 1;
       if (r.streak >= cfg.sessionsPerStep) step(1, false);
+      r.current = time;
+      r.points.push({ date, current: time });
     } else {
-      r.streak = 0;
+      r.streak = 0;                                                // R6-R3: equal or slower → CURRENT holds
     }
-    r.current = time;
-    r.trials.push({ date, time, cycle: t.cycle });
-    r.points.push({ date, current: time });
     return r;
   }
 

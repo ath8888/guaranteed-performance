@@ -29,7 +29,7 @@
 | Lifts | `lifts.md` |
 | Olympic | `olympic-lifts.md` |
 | Calisthenics (push-ups) | `calisthenics.md` |
-| Run | not written yet |
+| Run | `run.md` |
 
 ---
 
@@ -40,7 +40,7 @@
 
 | ID | Engines | Rule | Source |
 |---|---|---|---|
-| S1-R1 | All | Each standard has one CURRENT. It is the source of truth. It changes only per cycle or per AMRAP/test, as the engine's table says. | `[AD]` |
+| S1-R1 | All | Each standard has one CURRENT. It is the source of truth. It changes only where the engine's table says: at cycle end, on an AMRAP or test, or (Run) on a ladder step. | `[AD]` |
 | S1-R2 | Lifts, Olympic | CURRENT is stored and starts at START. TM = 90% of CURRENT, rounded (S2). TM is calculated from CURRENT whenever it is needed. It has no rules of its own. | `[AD]` |
 | S1-R3 | Lifts, Olympic | Saved before CURRENT was stored: CURRENT = TM ÷ 0.9, rounded. | `[App]` |
 
@@ -148,3 +148,4 @@ Then the plan moves to week 2 and CURRENT is unchanged
 | Date | Rule ID | Change | Reason |
 |---|---|---|---|
 | 2026-11-09 | All | v1.0 created from the app's shared code. Core CURRENT rule, rounding, cycle/week, skips, est. completion, delete moved here from lifts.md and olympic-lifts.md or written down for the first time. | A.D.: one shared table, engine tables point to it |
+| 2026-11-09 | S1-R1 | Wording: CURRENT may also change on a Run ladder step (run.md R5). | A.D.: keep Run ladder nudge |
