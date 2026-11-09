@@ -7,6 +7,10 @@ const fmtStd = (s: Standard, v: number, withUnit: boolean) =>
   STANDARD_META[s.type].kind === "time" ? fmtTime(v) : withUnit ? `${v} ${STANDARD_META[s.type].unit}` : String(v);
 import { estCompletionDate } from "../engine/progression";
 
+// F30 notes: one line in a Markdown table cell; quoted in CSV
+const mdCell = (t?: string) => (t ?? "").replace(/\s*\n\s*/g, " ").replace(/\|/g, "\\|");
+const csvCell = (t?: string) => (t ? `"${t.replace(/"/g, '""')}"` : "");
+
 export interface ExportData {
   standards: Standard[];
   training: TrainingState[];
@@ -47,13 +51,13 @@ export const ExportService = {
     lines.push("");
 
     lines.push("## Session Log", "");
-    lines.push("| Lift | Cycle | Week | Session | Completed |");
-    lines.push("|------|-------|------|---------|-----------|");
+    lines.push("| Lift | Cycle | Week | Session | Completed | Notes |");
+    lines.push("|------|-------|------|---------|-----------|-------|");
     for (const log of data.sessions) {
       const std = data.standards.find((s) => s.id === log.standardId);
       const label = std ? STANDARD_META[std.type].label : log.standardId;
       lines.push(
-        `| ${label} | ${log.cycle} | ${log.week} | ${log.sessionIndex} | ${log.completedAt.slice(0, 10)} |`
+        `| ${label} | ${log.cycle} | ${log.week} | ${log.sessionIndex} | ${log.completedAt.slice(0, 10)} | ${mdCell(log.notes)} |`
       );
     }
 
@@ -81,11 +85,11 @@ export const ExportService = {
     lines.push("");
 
     lines.push("SESSION LOG");
-    lines.push("Lift,Cycle,Week,Session,Completed At");
+    lines.push("Lift,Cycle,Week,Session,Completed At,Notes");
     for (const log of data.sessions) {
       const std = data.standards.find((s) => s.id === log.standardId);
       const label = std ? STANDARD_META[std.type].label : log.standardId;
-      lines.push(`${label},${log.cycle},${log.week},${log.sessionIndex},${log.completedAt.slice(0, 10)}`);
+      lines.push(`${label},${log.cycle},${log.week},${log.sessionIndex},${log.completedAt.slice(0, 10)},${csvCell(log.notes)}`);
     }
 
     return lines.join("\n");

@@ -224,6 +224,7 @@ function EntryCard({ entry }: { entry: HistoryEntry }) {
             {loggedLine(set)}
           </Text>
         ))}
+        {log.notes && <Text style={cs.noteLine}>NOTE: {log.notes}</Text>}
       </View>
     </View>
   );
@@ -315,6 +316,7 @@ const s = StyleSheet.create({
 });
 
 const cs = StyleSheet.create({
+  noteLine: { fontFamily: "WorkSans_400Regular", fontSize: 12, color: "#333", marginTop: 4 },
   card: { borderWidth: 2, borderColor: "#000", backgroundColor: "#fff" },
   cardHead: {
     flexDirection: "row",

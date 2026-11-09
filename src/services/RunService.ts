@@ -1,4 +1,4 @@
-import type { SetActual, Standard, TrainingState } from "../engine/types";
+import type { LogExtras, SetActual, Standard, TrainingState } from "../engine/types";
 import { ENGINES } from "../engine/registry";
 import { applyRunResult } from "../engine/run";
 import { isWeekComplete } from "../engine/progression";
@@ -13,11 +13,12 @@ export const RunService = {
     state: TrainingState,
     sessionIndex: number,
     sets: SetActual[] | undefined,
-    skipped = false
+    skipped = false,
+    extras: LogExtras = {}
   ): Promise<TrainingState> {
     const session = ENGINES[standard.type].buildWeek(standard, state)[sessionIndex];
-    await SessionService.log(standard.id, state.cycle, state.week, sessionIndex, sets, skipped);
-    const next: TrainingState = { ...state, run: applyRunResult(standard, state, session, sets, skipped) };
+    await SessionService.log(standard.id, state.cycle, state.week, sessionIndex, sets, skipped, extras);
+    const next: TrainingState = { ...state, run: applyRunResult(standard, state, session, sets, skipped, extras.completedAt ? new Date(extras.completedAt) : new Date()) };
     await TrainingService.save(next);
     const logs = await SessionService.getAll(standard.id);
     if (isWeekComplete(standard, state, logs)) {

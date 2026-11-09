@@ -1,4 +1,4 @@
-import type { SetActual, Standard, TrainingState } from "../engine/types";
+import type { LogExtras, SetActual, Standard, TrainingState } from "../engine/types";
 import { currentAfterTopSet, currentAtCycleEnd, liftCurrent, liftTM } from "../engine/strength";
 import { olympicCurrentAtCycleEnd } from "../engine/olympic";
 import { isWeekComplete } from "../engine/progression";
@@ -13,9 +13,10 @@ export const LiftService = {
     state: TrainingState,
     sessionIndex: number,
     sets: SetActual[] | undefined,
-    skipped = false
+    skipped = false,
+    extras: LogExtras = {}
   ): Promise<TrainingState> {
-    await SessionService.log(standard.id, state.cycle, state.week, sessionIndex, sets, skipped);
+    await SessionService.log(standard.id, state.cycle, state.week, sessionIndex, sets, skipped, extras);
     let current = liftCurrent(state);
     const olympic = standard.category === "olympic";
     // L4: the main lift's + set moves CURRENT right away (Olympic: no AMRAP, never mid-cycle)

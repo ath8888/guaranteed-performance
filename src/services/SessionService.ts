@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { SessionLog, SetActual } from "../engine/types";
+import type { LogExtras, SessionLog, SetActual } from "../engine/types";
 
 const key = (standardId: string) => `sessions:${standardId}`;
 
@@ -15,17 +15,20 @@ export const SessionService = {
     week: number,
     sessionIndex: number,
     sets?: SetActual[],
-    skipped = false
+    skipped = false,
+    extras: LogExtras = {}
   ): Promise<SessionLog> {
+    const notes = extras.notes?.trim();
     const entry: SessionLog = {
       id: `${standardId}-${cycle}-${week}-${sessionIndex}-${Date.now()}`,
       standardId,
       cycle,
       week,
       sessionIndex,
-      completedAt: new Date().toISOString(),
+      completedAt: extras.completedAt ?? new Date().toISOString(),
       sets,
       ...(skipped ? { skipped } : {}),
+      ...(notes ? { notes } : {}),
     };
     const all = await SessionService.getAll(standardId);
     all.push(entry);

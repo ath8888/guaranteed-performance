@@ -91,4 +91,8 @@ export interface SessionLog {
   completedAt: string;
   sets?: SetActual[];
   skipped?: boolean; // optional session skipped (calisthenics: counts toward week completion, no progression)
+  notes?: string;    // F30: free text from the Session screen
 }
+
+// F30: what the user set on the Session screen besides the sets
+export interface LogExtras { completedAt?: string; notes?: string }

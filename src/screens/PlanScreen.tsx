@@ -46,6 +46,7 @@ interface CardData {
   skipped: boolean;
   opensOn?: Date; // calisthenics: date a later workout becomes available
   loggedLines?: string[]; // done cards: what was actually logged, shown instead of the prescription
+  notes?: string;         // done cards: the note written on the Session screen (F30)
   badgeToday: boolean; // run: only the first open card shows TODAY (the others stay open: GO / SKIP)
 }
 
@@ -114,7 +115,8 @@ export function buildCards(
     const log = logFor(idx);
     const loggedLines =
       status === "done" && !skipped && log?.sets?.length ? log.sets.map(loggedLine) : undefined;
-    return { session, sessionIndex: idx, status, canSkip, skipped, opensOn, loggedLines, badgeToday: status === "today" };
+    const notes = status === "done" && !skipped ? log?.notes : undefined;
+    return { session, sessionIndex: idx, status, canSkip, skipped, opensOn, loggedLines, notes, badgeToday: status === "today" };
   });
   if (standard.category === "run") {
     const first = cards.findIndex((c) => c.status === "today");
@@ -431,6 +433,7 @@ function SessionCard({
             </Text>
           );
         })}
+        {card.notes && <Text style={cs.noteLine}>NOTE: {card.notes}</Text>}
       </View>
 
       {isToday && (
@@ -529,6 +532,7 @@ const s = StyleSheet.create({
 });
 
 const cs = StyleSheet.create({
+  noteLine: { fontFamily: "WorkSans_400Regular", fontSize: 12, color: "#333", marginTop: 4 },
   card: { borderWidth: 2, borderColor: "#000", backgroundColor: "#fff" },
   cardDim: { borderColor: "#bbb" },
   cardHead: {
