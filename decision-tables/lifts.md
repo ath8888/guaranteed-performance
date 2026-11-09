@@ -1,6 +1,6 @@
 # GuaranteedStandards — Lifts Category Decision Tables
 
-**Status:** v1.1 — Lifts engine built to this file (2026-11-08).
+**Status:** v1.2 — Lifts engine built to this file (2026-11-09).
 **Owner:** A.D.
 **Engine:** Lifts engine (`strength.ts`, `LiftService.ts`). Claude Code updates this engine when this file changes.
 
@@ -12,6 +12,7 @@
 4. Flag any gap (no row matches) or overlap (two rows match) before writing code.
 5. Never change a rule without a matching entry in the change log.
 6. Do not implement any row marked `[?]`.
+7. Shared rules (CURRENT and TM, rounding, weeks, skips, est. completion, delete) live in `shared.md`. Do not repeat them here.
 
 ## Source tags
 
@@ -19,21 +20,20 @@
 - `[AD]` A.D.'s rule. Not canonical 5/3/1.
 - `[?]` Open decision.
 
-## The core rule
+## Shared rules
 
-**CURRENT is the source of truth.** It is the lifter's estimated 1RM, in lb.
-**TM = 90% of CURRENT, rounded.** It is recalculated every time CURRENT changes. There is no other TM rule. `[AD]`
+See `shared.md`: CURRENT is the source of truth and TM = 90% of it (S1), rounding (S2), weeks (S3), skips (S4).
+For Lifts, CURRENT is the lifter's estimated 1RM in lb. It starts at START (L1), moves at each + set (L4) and at cycle end (L5).
 
-## Shared definitions
+## Definitions
 
 | Term | Meaning |
 |---|---|
 | Main lifts | Squat, deadlift, bench press, overhead press |
-| Cycle | Weeks 1–4. Week 4 is the deload. |
+| Week 4 | The deload |
 | + set | Last main set of weeks 1–3. Done for as many reps as possible. |
 | Minimum reps | Week 1: 5. Week 2: 3. Week 3: 1. |
 | Estimate | weight × (1 + reps ÷ 30), rounded. Reps above 10 count as 10. |
-| Rounding | Every computed load, CURRENT and TM rounds to the nearest 5 lb. Exact halves round up. |
 
 ---
 
@@ -42,9 +42,9 @@
 **Question:** What CURRENT does a lift start with?
 **Hit policy:** Unique
 
-| ID | Input | → CURRENT | → TM | Source |
-|---|---|---|---|---|
-| L1-R1 | START (the max the user enters) | START | 90% of START, rounded | `[W]` 90% |
+| ID | Input | → CURRENT | Source |
+|---|---|---|---|
+| L1-R1 | START (the max the user enters) | START | `[AD]` |
 
 No tested 1RM: the user enters a best guess as START. The + sets correct it.
 
@@ -103,7 +103,7 @@ BBB is optional. The user may SKIP it. BBB never changes CURRENT.
 
 | ID | Lift | Condition | → CURRENT | Source |
 |---|---|---|---|---|
-| L5-R1 | Any | Week 3 + set not logged (or skipped) | Unchanged | `[AD]` |
+| L5-R1 | Any | Week 3 + set not logged | Unchanged | `[AD]` |
 | L5-R2 | Any | Week 3 + set below its minimum (0 reps) | Unchanged | `[AD]` |
 | L5-R3 | Squat | Week 3 + set met its minimum | + 10 lb | `[W]` amount |
 | L5-R4 | Deadlift | Week 3 + set met its minimum | + 10 lb | `[W]` amount |
@@ -131,12 +131,12 @@ Given squat CURRENT is 335 lb
 When the user logs 285 × 0 on week 3
 Then CURRENT becomes 300 lb and TM becomes 270 lb at once
 
-**E4 — Rounding**
+**E4 — Rounding (shared S2-R1)**
 Given deadlift TM is 287 lb
 When the user opens week 1
 Then Set 1 is 185 lb (186.55 rounds to 185)
 
-**E5 — Rounding tie**
+**E5 — Rounding tie (shared S2-R1)**
 Given overhead press TM is 135 lb
 When the user opens week 4
 Then Set 2 is 70 lb (67.5 rounds up)
@@ -163,7 +163,6 @@ And when week 4 is finished, CURRENT stays 300 lb
 ## Not yet covered
 
 - Accessories (chins, carries, sandbag work). No rules yet.
-- Unit setting (lb vs kg).
 
 ## Change log
 
@@ -185,3 +184,4 @@ And when week 4 is finished, CURRENT stays 300 lb
 | 2026-11-08 | L1-R2 | Removed rep-max start; START is the only input | A.D.: simpler |
 | 2026-11-08 | L1, L4, L5 | CURRENT becomes the source of truth. TM = 90% of CURRENT, always. + sets move CURRENT at once (miss −10%, higher estimate replaces it, reps capped at 10). Cycle end adds +10 / +5 to CURRENT if week 3 was logged. Old L4 (TM progression and reset) replaced. | A.D.: simpler |
 | 2026-11-08 | L5-R2 | Added: week 3 + set miss → no cycle-end increase. Increase rows renumbered L5-R3 to R6. | A.D.: a miss never leads to a raise |
+| 2026-11-09 | Core rule, Shared definitions, L1, L5-R1 | Core rule, rounding, cycle and skip wording moved to shared.md. L1 lists CURRENT only (TM comes from S1-R2). lb vs kg moved to shared.md. No rule changed. | A.D.: one shared table |

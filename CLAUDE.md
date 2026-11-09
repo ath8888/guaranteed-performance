@@ -76,7 +76,7 @@ Full spec in `design.md`.
 | `master-plan.md` | Product vision and roadmap |
 | `design.md` | RawBlock design system reference |
 | `CLAUDE.md` | This file |
-| `decision-tables/` | One decision table per category engine (`lifts.md`, `olympic-lifts.md`). Source of truth for engine rules. Follow the standing orders at the top of each file. |
+| `decision-tables/` | `shared.md` (rules every engine shares) + one decision table per category engine (`lifts.md`, `olympic-lifts.md`). Source of truth for engine rules. Follow the standing orders at the top of each file. |
 
 ---
 
