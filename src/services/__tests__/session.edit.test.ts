@@ -56,7 +56,7 @@ describe("the engine uses what was logged", () => {
     const r = std("rn", "run800", "run", 160, 150);
     await TrainingService.init("rn", 0, undefined, initRunState(r));
     await TrainingService.save({ ...(await TrainingService.get("rn"))!, week: 4 });
-    const next = await RunService.record(r, (await TrainingService.get("rn"))!, 0, [{ part: "trial", distance: 800, time: 155 }], false, { completedAt: DATE });
+    const next = await RunService.record(r, (await TrainingService.get("rn"))!, 2, [{ part: "trial", distance: 800, time: 155 }], false, { completedAt: DATE });
     expect(next.run!.trials).toEqual([{ date: "2026-11-05", time: 155, cycle: 1 }]);
   });
 });

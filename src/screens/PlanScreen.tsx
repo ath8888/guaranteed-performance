@@ -32,7 +32,7 @@ import { cardLock, isStalled } from "../engine/calisthenics";
 import { RunService } from "../services/RunService";
 import { LiftService } from "../services/LiftService";
 import { WeekService } from "../services/WeekService";
-import { fmtDistance, fmtPace, fmtTime, speedRepText } from "../engine/run";
+import { fmtDistance, fmtLength, fmtPace, fmtTime, speedRepText } from "../engine/run";
 
 const LAST_SELECTED_KEY = "plan:lastSelectedId";
 
@@ -53,8 +53,10 @@ interface CardData {
 
 export const loggedLine = (set: SetActual) => {
   if (Object.keys(set).length === 0) return "Not done"; // run rep left unchecked
-  // Run: split / race time over a distance, or minutes (with pace when logged)
-  if (set.part === "speed" && set.distance && set.time != null) return speedRepText(set.distance, set.time);
+  // Run: split / race time over a distance, or minutes (with pace when logged); rest when logged (F32)
+  const rest = set.rest != null ? ` · rest ${fmtTime(set.rest)}` : "";
+  if (set.part === "interval" && set.length != null && set.pace != null) return `${fmtLength(set.length)} @ ${fmtPace(set.pace)}${rest}`;
+  if (set.part === "speed" && set.distance && set.time != null) return speedRepText(set.distance, set.time) + rest;
   if (set.time != null) return set.distance ? `${fmtDistance(set.distance)} · ${fmtTime(set.time)}` : fmtTime(set.time);
   if (set.minutes != null) return set.pace != null ? `${set.minutes} min @ ${fmtPace(set.pace)}` : `${set.minutes} min`;
   return set.weight ? `${set.weight} lb × ${set.reps}` : `${set.reps} reps`;
@@ -413,6 +415,7 @@ function SessionCard({
             {session.recommended ? "RECOMMENDED" : "OPTIONAL"}
           </Text>
         )}
+        {session.optionalTag && !isDone && <Text style={[cs.tag, cs.tagOptional]}>OPTIONAL</Text>}
         {card.opensOn && (
           <Text style={[cs.tag, cs.tagOptional]}>
             OPENS {card.opensOn.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }).toUpperCase()}

@@ -1,6 +1,6 @@
 # GuaranteedStandards — Run Category Decision Tables
 
-**Status:** v1.0 — rules rebuilt and approved by A.D. (2026-11-12). Engine NOT built to this version yet (still runs v0.3).
+**Status:** v1.0 — rules rebuilt and approved by A.D. (2026-11-12). Engine built to v1.0 (F32, 2026-11-12).
 **Owner:** A.D.
 **Engine:** Run engine (`run.ts`, `RunService.ts`). Claude Code updates this engine when this file changes.
 
@@ -289,3 +289,4 @@ Then it is on rung 1: 4 × 3 min @ 7:40/mi, counter 0, CURRENT 23:00
 | 2026-11-12 | R2–R11 | v1.0 draft: every rule after R1 rebuilt. Ladder is now rungs of rep length and pace (R3), with 4 race-pace intervals per session. A rung is met only with every rest ≤ 2:00; 2 in a row moves up, and a higher rung can be met to skip ahead (R6). CURRENT on a move = one rep converted with the run calculator, only if faster (R7). Speed reps: 2 per session, split from CURRENT. Short types add an optional threshold rep, any cardio. Weeks: A / B / A; week 4: A / B / optional Time Trial (deload removed). Zone 2 length grows +5 min per 2 full runs to a cap; no pace given, user logs it (R9). Personal adjustment (old R7) removed. Old standards restart on rung 1 from CURRENT pace (R11). | A.D. rebuild before Play Store release |
 | 2026-11-12 | Definitions | Session A, speed rep, threshold rep updated; ladder part renamed race-pace interval; ladder pace replaced by base pace and rung; adjustment removed; rest and run calculator added. | Broken by the v1.0 rules |
 | 2026-11-12 | All | v1.0 approved. | A.D. approval |
+| 2026-11-12 | All | Engine built to v1.0 (F32). No rule changed. | Build |

@@ -98,9 +98,14 @@ describe("sessionTitle — run (F23)", () => {
     id: "run3-1", type: "run3", category: "run", start: 1440, target: 1320,
     createdAt: "2026-11-01T00:00:00.000Z", status: "active",
   };
-  it("A · B · A, week 4 Time Trial first", () => {
+  it("A · B · A; week 4 A · B · Time Trial (F32)", () => {
     expect([0, 1, 2].map((i) => sessionTitle(run3, log(run3, i, "x"))))
-      .toEqual(["Session A — Threshold + Speed", "Session B — Zone 2", "Session A — Threshold + Speed"]);
-    expect(sessionTitle(run3, log(run3, 0, "x", { week: 4 }))).toBe("Session A — Time Trial");
+      .toEqual(["Session A — Intervals", "Session B — Zone 2", "Session A — Intervals"]);
+    expect([0, 1, 2].map((i) => sessionTitle(run3, log(run3, i, "x", { week: 4 }))))
+      .toEqual(["Session A — Intervals", "Session B — Zone 2", "Time Trial"]);
+  });
+  it("old v0.3 week-4 logs keep their titles (the trial was card 1)", () => {
+    expect(sessionTitle(run3, log(run3, 0, "x", { week: 4, sets: [{ part: "trial", distance: 4828, time: 1400 }] }))).toBe("Time Trial");
+    expect(sessionTitle(run3, log(run3, 2, "x", { week: 4, sets: [{ minutes: 5, pace: 470 }] }))).toBe("Session A — Intervals");
   });
 });

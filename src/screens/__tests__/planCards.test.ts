@@ -107,11 +107,21 @@ describe("buildCards — run", () => {
     expect(cards[1].skipped).toBe(true);
     expect(cards[2].loggedLines).toEqual(["200m @ 5:14/mi in 0:39secs"]);
   });
+  it("week 4: only the Time Trial carries the OPTIONAL tag (F32)", () => {
+    const cards = buildCards(r, { ...rs, week: 4 }, [], 4);
+    expect(cards.map((c) => !!c.session.optionalTag)).toEqual([false, false, true]);
+    expect(cards.every((c) => c.canSkip)).toBe(true);
+  });
   it("loggedLine formats run sets", () => {
     expect(loggedLine({ part: "trial", distance: 800, time: 155 })).toBe("800m · 2:35");
     expect(loggedLine({ part: "speed", distance: 400, time: 112 })).toBe("400m @ 7:31/mi in 1:52secs");
     expect(loggedLine({ minutes: 3, pace: 400 })).toBe("3 min @ 6:40/mi");
     expect(loggedLine({ minutes: 30 })).toBe("30 min");
+    // F32: race-pace intervals and rests
+    expect(loggedLine({ part: "interval", length: 180, pace: 480, rest: 105 })).toBe("3 min @ 8:00/mi · rest 1:45");
+    expect(loggedLine({ part: "speed", distance: 100, time: 18, rest: 90 })).toBe("100m @ 4:50/mi in 0:18secs · rest 1:30");
+    expect(loggedLine({ part: "threshold", minutes: 3 })).toBe("3 min");
+    expect(loggedLine({ part: "zone2", minutes: 25, pace: 600 })).toBe("25 min @ 10:00/mi");
     expect(loggedLine({})).toBe("Not done");
     expect(loggedLine({ weight: 35, reps: 9 })).toBe("35 lb × 9");
   });

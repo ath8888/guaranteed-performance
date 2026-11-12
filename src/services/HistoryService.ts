@@ -16,9 +16,9 @@ export interface HistoryEntry {
 }
 
 // Mirrors the engines' session order: lifts [main, BBB], olympic [main], push-ups [A strength, B endurance, B endurance],
-// run [A, B — Zone 2, A] (week 4: Time Trial, B, A).
+// run [A, B — Zone 2, A] (week 4: A, B, Time Trial; logged sets decide old v0.3 week-4 logs).
 export function sessionTitle(std: Standard, log: SessionLog): string {
-  if (std.category === "run") return runSessionTitle(std, log.week, log.sessionIndex);
+  if (std.category === "run") return runSessionTitle(std, log.week, log.sessionIndex, log.sets);
   if (std.category === "calisthenics") {
     return log.sessionIndex === 0 ? "Session A — Strength" : "Session B — Endurance";
   }

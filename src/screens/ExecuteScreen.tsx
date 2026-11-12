@@ -27,7 +27,7 @@ import { cycleEndTM } from "../engine/progression";
 import { CalisthenicsService } from "../services/CalisthenicsService";
 import { RunService } from "../services/RunService";
 import { LiftService } from "../services/LiftService";
-import { fmtDistance, fmtPace, fmtTime, fmtTimeDigits, parseTime, speedRepText } from "../engine/run";
+import { fmtDistance, fmtLength, fmtPace, fmtTime, fmtTimeDigits, parseTime, speedRepText } from "../engine/run";
 import type { Session } from "../engine/shared";
 import { StandardService } from "../services/StandardService";
 import { TrainingService } from "../services/TrainingService";
@@ -43,6 +43,12 @@ type Entry = {
   allowEmpty?: boolean;
   onChange: (n: number | null) => void;
 };
+
+// F32: what one run rep logs (split, interval length, pace, rest, minutes) — null = not entered
+type RunKey = "time" | "length" | "pace" | "rest" | "minutes";
+type RunVals = Partial<Record<RunKey, number | null>>;
+const REST_START = 120;      // rests start at 2:00 (the most that still meets a rung)
+const Z2_PACE_START = 600;   // Zone 2 pace −/+ starts from 10:00/mi (no target pace is shown)
 
 export default function ExecuteScreen({ navigation, route }: any) {
   const [fontsLoaded] = useFonts({
@@ -64,9 +70,8 @@ export default function ExecuteScreen({ navigation, route }: any) {
   const [setReps, setSetReps] = useState<(number | null)[]>([]);
   // Calisthenics strength block: vest load, editable each session
   const [load, setLoad] = useState<number | null>(null);
-  // Run: per-rep value (speed split s, threshold pace s/mi, Zone 2 minutes), optional Zone 2 pace, typed trial time
-  const [runVals, setRunVals] = useState<(number | null)[]>([]);
-  const [z2Pace, setZ2Pace] = useState<number | null>(null);
+  // Run: per-rep values (F32), typed trial time
+  const [runVals, setRunVals] = useState<RunVals[]>([]);
   const [trialText, setTrialText] = useState("");
   // F30: per-set weight, completed date (days before today), notes
   const [setWeights, setSetWeights] = useState<(number | null)[]>([]);
@@ -94,9 +99,14 @@ export default function ExecuteScreen({ navigation, route }: any) {
     setNotes("");
     setLoad(sess.kind === "strength" ? sess.sets?.[0]?.weight ?? 0 : null);
     // Run reps start at the target (one thumb between reps); the time trial must be typed.
-    setRunVals((sess.sets ?? []).map((set) =>
-      set.part === "speed" ? set.time ?? null : set.part === "threshold" ? set.pace ?? null : set.part === "zone2" ? set.minutes ?? null : null));
-    setZ2Pace(null);
+    // Zone 2 pace starts empty (optional, no target shown).
+    setRunVals((sess.sets ?? []).map((set): RunVals => {
+      if (set.part === "speed") return { time: set.time ?? null, rest: REST_START };
+      if (set.part === "interval") return { length: set.length ?? null, pace: set.pace ?? null, rest: REST_START };
+      if (set.part === "threshold") return { minutes: set.minutes ?? null };
+      if (set.part === "zone2") return { minutes: set.minutes ?? null, pace: null };
+      return {};
+    }));
     setTrialText("");
   }
 
@@ -182,10 +192,12 @@ export default function ExecuteScreen({ navigation, route }: any) {
     if (isRun) {
       const sets = session!.sets!.map((set, i) => {
         if (!checked[i]) return {};
-        const v = runVals[i] ?? undefined;
-        if (set.part === "speed") return { part: "speed" as const, distance: set.distance, time: v };
-        if (set.part === "threshold") return { minutes: set.minutes, pace: v };
-        if (set.part === "zone2") return { minutes: v ?? set.minutes, ...(z2Pace !== null ? { pace: z2Pace } : {}) };
+        const v = runVals[i] ?? {};
+        const n = (k: RunKey) => v[k] ?? undefined;
+        if (set.part === "speed") return { part: "speed" as const, distance: set.distance, time: n("time"), rest: n("rest") };
+        if (set.part === "interval") return { part: "interval" as const, length: n("length"), pace: n("pace"), rest: n("rest") };
+        if (set.part === "threshold") return { part: "threshold" as const, minutes: n("minutes") ?? set.minutes };
+        if (set.part === "zone2") return { part: "zone2" as const, minutes: n("minutes") ?? set.minutes, ...(v.pace != null ? { pace: v.pace } : {}) };
         return { part: "trial" as const, distance: set.distance, time: trialTime! };
       });
       await RunService.record(standard!, trainingState!, sessionIndex, sets, false, extras);
@@ -248,10 +260,10 @@ export default function ExecuteScreen({ navigation, route }: any) {
     next[i] = n;
     setSetWeights(next);
   }
-  function setRunValAt(i: number, n: number | null) {
-    if (n == null) return;
+  function setRunValAt(i: number, k: RunKey, n: number | null, allowEmpty = false) {
+    if (n == null && !allowEmpty) return;
     const next = [...runVals];
-    next[i] = n;
+    next[i] = { ...next[i], [k]: n };
     setRunVals(next);
   }
 
@@ -273,10 +285,23 @@ export default function ExecuteScreen({ navigation, route }: any) {
     );
   }
 
-  function changeRunVal(i: number, delta: number) {
+  function changeRunVal(i: number, k: RunKey, delta: number, from = 0) {
     const next = [...runVals];
-    next[i] = Math.max(1, (next[i] ?? 0) + delta);
+    next[i] = { ...next[i], [k]: Math.max(1, (next[i]?.[k] ?? from) + delta) };
     setRunVals(next);
+  }
+
+  // One run value: −/+ and typeable (F31 NumberField). Times show as M:SS, minutes as a number.
+  function runField(i: number, k: RunKey, label: string, opts: { time?: boolean; optional?: boolean; from?: number } = {}) {
+    const v = runVals[i]?.[k] ?? null;
+    const display = v == null ? "—" : opts.time ? fmtTime(v) : String(v);
+    return counter(label, display, (d) => changeRunVal(i, k, d, opts.from), {
+      value: v,
+      ...(opts.time ? { kind: "time" as const } : {}),
+      clamp: clampMin(1),
+      allowEmpty: !!opts.optional,
+      onChange: (n) => setRunValAt(i, k, n, !!opts.optional),
+    });
   }
 
   function counter(label: string, display: string, onDelta: (d: number) => void, entry: Entry) {
@@ -300,13 +325,13 @@ export default function ExecuteScreen({ navigation, route }: any) {
   function renderRunSet(set: NonNullable<Session["sets"]>[number], i: number) {
     const sets = session!.sets!;
     const repNo = sets.slice(0, i).filter((x) => x.part === set.part).length + 1;
-    const v = runVals[i];
     let main = "";
     let label = "";
-    if (set.part === "speed") { main = speedRepText(set.distance!, set.time!, set.pace!); label = `REP ${repNo} · SPEED`; }
-    else if (set.part === "threshold") { main = `${set.minutes} min @ ${fmtPace(set.pace!)}`; label = `REP ${repNo} · THRESHOLD`; }
-    else if (set.part === "zone2") { main = `${set.minutes} min`; label = `ZONE 2 · ${fmtPace(set.pace!)} OR SLOWER`; }
-    else { main = `${fmtDistance(set.distance!)} all-out`; label = `TIME TRIAL · CURRENT ${fmtTime(trainingState!.run?.current ?? standard!.start)}`; }
+    if (set.part === "speed") { main = speedRepText(set.distance!, set.time!); label = `REP ${repNo} · SPEED`; }
+    else if (set.part === "interval") { main = `${fmtLength(set.length!)} @ ${fmtPace(set.pace!)}`; label = `INTERVAL ${repNo} · RACE PACE`; }
+    else if (set.part === "threshold") { main = `${set.minutes} min threshold`; label = "ANY CARDIO · OPTIONAL"; }
+    else if (set.part === "zone2") { main = `${set.minutes} min`; label = "ZONE 2 · CONVERSATIONAL"; }
+    else { main = `${fmtDistance(set.distance!)} all-out`; label = `TIME TRIAL · OPTIONAL · CURRENT ${fmtTime(trainingState!.run?.current ?? standard!.start)}`; }
     const isChecked = checked[i] ?? false;
 
     return (
@@ -320,16 +345,13 @@ export default function ExecuteScreen({ navigation, route }: any) {
             <Text style={s.setLabel}>{label}</Text>
           </View>
         </TouchableOpacity>
-        {set.part === "speed" && counter("SPLIT:", v != null ? fmtTime(v) : "—", (d) => changeRunVal(i, d),
-          { value: v, kind: "time", clamp: clampMin(1), onChange: (n) => setRunValAt(i, n) })}
-        {set.part === "threshold" && counter("PACE /MI:", v != null ? fmtTime(v) : "—", (d) => changeRunVal(i, d),
-          { value: v, kind: "time", clamp: clampMin(1), onChange: (n) => setRunValAt(i, n) })}
-        {set.part === "zone2" && counter("MINUTES:", v != null ? String(v) : "—", (d) => changeRunVal(i, d),
-          { value: v, clamp: clampMin(1), onChange: (n) => setRunValAt(i, n) })}
-        {set.part === "zone2" &&
-          counter("PACE /MI (OPTIONAL):", z2Pace != null ? fmtTime(z2Pace) : "—", (d) =>
-            setZ2Pace(Math.max(1, (z2Pace ?? set.pace!) + d)),
-            { value: z2Pace, kind: "time", clamp: clampMin(1), allowEmpty: true, onChange: setZ2Pace })}
+        {set.part === "speed" && runField(i, "time", "SPLIT:", { time: true })}
+        {set.part === "interval" && runField(i, "length", "LENGTH:", { time: true })}
+        {set.part === "interval" && runField(i, "pace", "PACE /MI:", { time: true })}
+        {(set.part === "speed" || set.part === "interval") && runField(i, "rest", "REST:", { time: true })}
+        {set.part === "threshold" && runField(i, "minutes", "MINUTES:")}
+        {set.part === "zone2" && runField(i, "minutes", "MINUTES:")}
+        {set.part === "zone2" && runField(i, "pace", "PACE /MI (OPTIONAL):", { time: true, optional: true, from: Z2_PACE_START })}
         {set.part === "trial" && (
           <View style={s.amrapRow}>
             <Text style={s.amrapLabel}>TIME:</Text>

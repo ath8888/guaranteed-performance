@@ -52,11 +52,14 @@ export interface TrainingState {
 }
 
 // Run: Start / Current / Target are race times in seconds; paces are seconds per mile.
+// run.md v1.0. States saved under v0.3 (ladder / streak / adjust, no rung) are converted on read (R11).
 export interface RunState {
-  ladder: number;   // ladder pace (s/mi): speed reps (≤1.5 mi) or threshold reps (>1.5 mi)
-  streak: number;   // qualifying sessions in a row at the ladder pace (2 → step)
-  current: number;  // CURRENT race time (s) — set by time trials, moved by half of each ladder step
-  adjust: { speed?: number; threshold?: number }; // personal adjustment (s/mi, negative = faster) on non-step paces
+  rung: number;     // ladder rung (1, 2, 3…) — rep length + pace (R3)
+  counter: number;  // qualifying Session A's in a row on this rung (R6)
+  base: number;     // base pace (s/mi) every rung is measured from
+  current: number;  // CURRENT race time (s) — moved by a rung move (R7) or a faster Time Trial (R8)
+  z2Min: number;    // Zone 2 length (min) (R9)
+  z2Full: number;   // full-length Zone 2 runs toward the next +5 min
   trials: { date: string; time: number; cycle: number }[];
   points: { date: string; current: number }[]; // CURRENT over time (est. completion rate, chart)
 }
@@ -80,8 +83,12 @@ export interface CheckIn {
   date: string;
 }
 
-// Run: time = split or race time (s) over distance (m), pace = s/mi, minutes = duration run, part = speed rep / time trial
-export interface SetActual { weight?: number; reps?: number; time?: number; distance?: number; pace?: number; minutes?: number; part?: "speed" | "trial" }
+// Run: time = split or race time (s) over distance (m), pace = s/mi, minutes = duration run,
+// length = race-pace interval length (s), rest = rest after the rep (s)
+export interface SetActual {
+  weight?: number; reps?: number; time?: number; distance?: number; pace?: number; minutes?: number;
+  length?: number; rest?: number; part?: "speed" | "trial" | "interval" | "threshold" | "zone2";
+}
 
 export interface SessionLog {
   id: string;
