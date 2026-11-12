@@ -32,6 +32,17 @@ import type { Session } from "../engine/shared";
 import { StandardService } from "../services/StandardService";
 import { TrainingService } from "../services/TrainingService";
 import { SessionService } from "../services/SessionService";
+import NumberField from "../components/NumberField";
+import { clampMin, clampReps, type EntryKind } from "../components/numberEntry";
+
+// F31: what a typeable counter needs (display comes from the counter)
+type Entry = {
+  value: number | null;
+  kind?: EntryKind;
+  clamp?: (n: number) => number;
+  allowEmpty?: boolean;
+  onChange: (n: number | null) => void;
+};
 
 export default function ExecuteScreen({ navigation, route }: any) {
   const [fontsLoaded] = useFonts({
@@ -225,8 +236,27 @@ export default function ExecuteScreen({ navigation, route }: any) {
     setSetWeights(next);
   }
 
-  // F30: black −/+ counter for plain edits (blue stays on + set / AMRAP reps)
-  function editCounter(label: string, display: string, onDelta: (d: number) => void, canUp = true) {
+  // F31: typed entry — every keystroke that makes a valid number is saved (same limits as −/+)
+  function setRepsAt(i: number, n: number | null) {
+    const next = [...setReps];
+    next[i] = n;
+    setSetReps(next);
+  }
+  function setWeightAt(i: number, n: number | null) {
+    if (n == null) return;
+    const next = [...setWeights];
+    next[i] = n;
+    setSetWeights(next);
+  }
+  function setRunValAt(i: number, n: number | null) {
+    if (n == null) return;
+    const next = [...runVals];
+    next[i] = n;
+    setRunVals(next);
+  }
+
+  // F30: black −/+ counter for plain edits (blue stays on + set / AMRAP reps). F31: `entry` makes the number typeable.
+  function editCounter(label: string, display: string, onDelta: (d: number) => void, canUp = true, entry?: Entry) {
     return (
       <View style={s.amrapRow}>
         <Text style={s.editLabel}>{label}</Text>
@@ -234,7 +264,7 @@ export default function ExecuteScreen({ navigation, route }: any) {
           <TouchableOpacity style={s.editBtn} onPress={() => onDelta(-1)}>
             <Text style={s.amrapBtnText}>−</Text>
           </TouchableOpacity>
-          <Text style={s.editNum}>{display}</Text>
+          {entry ? <NumberField {...entry} display={display} style={s.editNum} /> : <Text style={s.editNum}>{display}</Text>}
           <TouchableOpacity style={[s.editBtn, !canUp && s.editBtnOff]} onPress={() => canUp && onDelta(1)} disabled={!canUp}>
             <Text style={s.amrapBtnText}>+</Text>
           </TouchableOpacity>
@@ -249,7 +279,7 @@ export default function ExecuteScreen({ navigation, route }: any) {
     setRunVals(next);
   }
 
-  function counter(label: string, display: string, onDelta: (d: number) => void) {
+  function counter(label: string, display: string, onDelta: (d: number) => void, entry: Entry) {
     return (
       <View style={s.amrapRow}>
         <Text style={s.amrapLabel}>{label}</Text>
@@ -257,7 +287,7 @@ export default function ExecuteScreen({ navigation, route }: any) {
           <TouchableOpacity style={s.amrapBtn} onPress={() => onDelta(-1)}>
             <Text style={s.amrapBtnText}>−</Text>
           </TouchableOpacity>
-          <Text style={[s.amrapNum, s.runNum]}>{display}</Text>
+          <NumberField {...entry} display={display} style={[s.amrapNum, s.runNum]} />
           <TouchableOpacity style={s.amrapBtn} onPress={() => onDelta(1)}>
             <Text style={s.amrapBtnText}>+</Text>
           </TouchableOpacity>
@@ -290,12 +320,16 @@ export default function ExecuteScreen({ navigation, route }: any) {
             <Text style={s.setLabel}>{label}</Text>
           </View>
         </TouchableOpacity>
-        {set.part === "speed" && counter("SPLIT:", v != null ? fmtTime(v) : "—", (d) => changeRunVal(i, d))}
-        {set.part === "threshold" && counter("PACE /MI:", v != null ? fmtTime(v) : "—", (d) => changeRunVal(i, d))}
-        {set.part === "zone2" && counter("MINUTES:", v != null ? String(v) : "—", (d) => changeRunVal(i, d))}
+        {set.part === "speed" && counter("SPLIT:", v != null ? fmtTime(v) : "—", (d) => changeRunVal(i, d),
+          { value: v, kind: "time", clamp: clampMin(1), onChange: (n) => setRunValAt(i, n) })}
+        {set.part === "threshold" && counter("PACE /MI:", v != null ? fmtTime(v) : "—", (d) => changeRunVal(i, d),
+          { value: v, kind: "time", clamp: clampMin(1), onChange: (n) => setRunValAt(i, n) })}
+        {set.part === "zone2" && counter("MINUTES:", v != null ? String(v) : "—", (d) => changeRunVal(i, d),
+          { value: v, clamp: clampMin(1), onChange: (n) => setRunValAt(i, n) })}
         {set.part === "zone2" &&
           counter("PACE /MI (OPTIONAL):", z2Pace != null ? fmtTime(z2Pace) : "—", (d) =>
-            setZ2Pace(Math.max(1, (z2Pace ?? set.pace!) + d)))}
+            setZ2Pace(Math.max(1, (z2Pace ?? set.pace!) + d)),
+            { value: z2Pace, kind: "time", clamp: clampMin(1), allowEmpty: true, onChange: setZ2Pace })}
         {set.part === "trial" && (
           <View style={s.amrapRow}>
             <Text style={s.amrapLabel}>TIME:</Text>
@@ -350,7 +384,7 @@ export default function ExecuteScreen({ navigation, route }: any) {
               <TouchableOpacity style={s.amrapBtn} onPress={() => setLoad(Math.max(0, load - 5))}>
                 <Text style={s.amrapBtnText}>−</Text>
               </TouchableOpacity>
-              <Text style={s.amrapNum}>{load} lb</Text>
+              <NumberField value={load} display={`${load} lb`} clamp={clampMin(0)} onChange={(n) => n != null && setLoad(n)} style={s.amrapNum} />
               <TouchableOpacity style={s.amrapBtn} onPress={() => setLoad(load + 5)}>
                 <Text style={s.amrapBtnText}>+</Text>
               </TouchableOpacity>
@@ -383,9 +417,11 @@ export default function ExecuteScreen({ navigation, route }: any) {
               </TouchableOpacity>
 
               {!isCal && set.weight != null &&
-                editCounter("WEIGHT LB:", String(setWeights[i] ?? set.weight), (d) => changeWeight(i, d * 5))}
+                editCounter("WEIGHT LB:", String(setWeights[i] ?? set.weight), (d) => changeWeight(i, d * 5), true,
+                  { value: setWeights[i] ?? set.weight, clamp: clampMin(0), onChange: (n) => setWeightAt(i, n) })}
               {!isAmrap &&
-                editCounter("REPS:", String(setReps[i] ?? set.reps), (d) => changeReps(i, d))}
+                editCounter("REPS:", String(setReps[i] ?? set.reps), (d) => changeReps(i, d), true,
+                  { value: setReps[i] ?? set.reps, clamp: clampReps(set.maxReps), onChange: (n) => n != null && setRepsAt(i, n) })}
               {isAmrap && (
                 <View style={s.amrapRow}>
                   <Text style={s.amrapLabel}>REPS DONE:</Text>
@@ -396,9 +432,14 @@ export default function ExecuteScreen({ navigation, route }: any) {
                     >
                       <Text style={s.amrapBtnText}>−</Text>
                     </TouchableOpacity>
-                    <Text style={s.amrapNum}>
-                      {setReps[i] !== null && setReps[i] !== undefined ? setReps[i] : "—"}
-                    </Text>
+                    <NumberField
+                      value={setReps[i] ?? null}
+                      display={setReps[i] !== null && setReps[i] !== undefined ? String(setReps[i]) : "—"}
+                      clamp={clampReps(set.maxReps)}
+                      allowEmpty
+                      onChange={(n) => setRepsAt(i, n)}
+                      style={s.amrapNum}
+                    />
                     <TouchableOpacity
                       style={s.amrapBtn}
                       onPress={() => changeReps(i, 1)}
