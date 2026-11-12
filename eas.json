@@ -4,12 +4,18 @@
   },
   "build": {
     "preview": {
+      "env": {
+        "EXPO_PUBLIC_ENABLE_RUN": "true"
+      },
       "android": {
         "buildType": "apk",
         "resourceClass": "medium"
       }
     },
     "production": {
+      "env": {
+        "EXPO_PUBLIC_ENABLE_RUN": "false"
+      },
       "android": {
         "buildType": "app-bundle"
       }

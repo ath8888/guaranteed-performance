@@ -16,9 +16,11 @@ import { TrainingService } from "../services/TrainingService";
 import { initTrainingMax } from "../engine/progression";
 import { CALISTHENICS_CONFIG, initCalState } from "../engine/calisthenics";
 import { fmtTimeDigits, initRunState, parseTime } from "../engine/run";
+import { addableCategories } from "../features";
 
 const TYPES: StandardType[] = ["bench", "ohp", "squat", "deadlift", "olympic", "pushups", "run800", "run1_5", "run3", "run5"];
-const CATEGORIES: StandardCategory[] = ["lifts", "olympic", "calisthenics", "run"];
+// F33: Run is left out when the build turns it off (Play Store)
+const CATEGORIES: StandardCategory[] = addableCategories(["lifts", "olympic", "calisthenics", "run"]);
 
 interface Props {
   visible: boolean;
