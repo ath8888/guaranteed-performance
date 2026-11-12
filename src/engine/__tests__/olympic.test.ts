@@ -99,9 +99,14 @@ describe("olympic estimated completion", () => {
     // CURRENT 150 → target 200: 50 / 5 = 10
     expect(wavesToTarget(oly, TM)).toBe(10);
   });
-  it("date: 4 + 9×4 = 40 weeks from week 1", () => {
+  it("date: first +5 at the end of week 3 → 3 + 9×4 = 39 weeks from week 1 (O3 v0.8)", () => {
     const from = new Date("2026-01-01");
     const d = estCompletionDate(oly, { standardId: "o1", trainingMax: TM, cycle: 1, week: 1 }, [], from)!;
+    expect(Math.round((d.getTime() - from.getTime()) / 86400000)).toBe(273);
+  });
+  it("date from week 4: next +5 at the end of next cycle's week 3 → 4 + 9×4 = 40 weeks", () => {
+    const from = new Date("2026-01-01");
+    const d = estCompletionDate(oly, { standardId: "o1", trainingMax: TM, cycle: 1, week: 4 }, [], from)!;
     expect(Math.round((d.getTime() - from.getTime()) / 86400000)).toBe(280);
   });
 });

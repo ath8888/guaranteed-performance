@@ -1,6 +1,6 @@
 import type { LogExtras, SetActual, Standard, TrainingState } from "../engine/types";
 import { currentAfterTopSet, currentAtCycleEnd, liftCurrent, liftTM } from "../engine/strength";
-import { olympicCurrentAtCycleEnd } from "../engine/olympic";
+import { olympicCurrentAtCycleEnd, olympicDueForProgress } from "../engine/olympic";
 import { isWeekComplete } from "../engine/progression";
 import { SessionService } from "./SessionService";
 import { TrainingService } from "./TrainingService";
@@ -25,13 +25,20 @@ export const LiftService = {
       current = currentAfterTopSet(current, state.week, top.weight, top.reps);
     }
     const logs = await SessionService.getAll(standard.id);
-    // L5 / O3: cycle end
-    if (state.week === 4 && isWeekComplete(standard, state, logs)) {
-      current = olympic
-        ? olympicCurrentAtCycleEnd(current, logs, state.cycle)
-        : currentAtCycleEnd(standard, current, logs, state.cycle);
+    const weekDone = isWeekComplete(standard, state, logs);
+    let olyProgressCycle = state.olyProgressCycle;
+    if (olympic && weekDone && olympicDueForProgress(state)) {
+      // O3: end of week 3 (once per cycle)
+      current = olympicCurrentAtCycleEnd(current, logs, state.cycle);
+      olyProgressCycle = state.cycle;
+    } else if (!olympic && state.week === 4 && weekDone) {
+      // L5: cycle end
+      current = currentAtCycleEnd(standard, current, logs, state.cycle);
     }
-    const next: TrainingState = { ...state, current, trainingMax: liftTM(current) };
+    const next: TrainingState = {
+      ...state, current, trainingMax: liftTM(current),
+      ...(olyProgressCycle !== undefined ? { olyProgressCycle } : {}),
+    };
     await TrainingService.save(next);
     if (isWeekComplete(standard, state, logs)) {
       return TrainingService.advanceWeek(standard.id, next.trainingMax);

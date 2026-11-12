@@ -57,7 +57,8 @@ export function estCompletionDate(s: Standard, t: TrainingState, logs: SessionLo
   } else {
     const waves = wavesToTarget(s, current * 0.9);
     if (waves === 0) return null;
-    weeks = (5 - t.week) + (waves - 1) * 4;
+    const pw = engine.progressWeek ?? 4;
+    weeks = (t.week <= pw ? pw - t.week + 1 : 4 - t.week + 1 + pw) + (waves - 1) * 4;
   }
   const weekEnd = currentWeekStart(s, t, logs);
   weekEnd.setDate(weekEnd.getDate() + 7);

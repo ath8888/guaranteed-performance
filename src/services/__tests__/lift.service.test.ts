@@ -1,5 +1,7 @@
 import { LiftService } from "../LiftService";
 import { TrainingService } from "../TrainingService";
+import { SessionService } from "../SessionService";
+import { olympicWeek } from "../../engine/olympic";
 import type { Standard, TrainingState } from "../../engine/types";
 
 jest.mock("@react-native-async-storage/async-storage", () =>
@@ -68,16 +70,40 @@ describe("LiftService.record (olympic-lifts.md)", () => {
   }
   beforeEach(async () => { await TrainingService.init("ol", 135, undefined, undefined, 150); });
 
-  it("top sets never move CURRENT mid-cycle", async () => {
-    const { mid } = await runCycle(3, 3, 3);
-    expect(mid).toMatchObject({ current: 150, trainingMax: 135, week: 4 });
+  it("weeks 1–2 top sets never move CURRENT", async () => {
+    await LiftService.record(oly, await olyState(), 0, triple(115, 3));
+    const w2 = await LiftService.record(oly, await olyState(), 0, triple(120, 3));
+    expect(w2).toMatchObject({ current: 150, trainingMax: 135, week: 3 });
   });
-  it("all triples → +5 to CURRENT at cycle end, TM = 90% of it", async () => {
+  it("O3 v0.8: all triples → +5 when week 3 is finished; week 4 deload built from the new TM (E2)", async () => {
+    const { mid } = await runCycle(3, 3, 3);
+    expect(mid).toMatchObject({ current: 155, trainingMax: 140, week: 4, olyProgressCycle: 1 });
+    expect(olympicWeek(mid.week, mid.trainingMax)[0].sets!.map((s) => s.weight)).toEqual([55, 70, 85]);
+  });
+  it("O3 runs once per cycle: finishing week 4 adds nothing more", async () => {
     const { end } = await runCycle(3, 3, 3);
     expect(end).toMatchObject({ current: 155, trainingMax: 140, week: 1, cycle: 2 });
   });
-  it("0 reps on week 3 → CURRENT holds, no reset", async () => {
-    const { end } = await runCycle(3, 3, 0);
+  it("0 reps on week 3 → CURRENT holds at the end of week 3 and stays held after week 4", async () => {
+    const { mid, end } = await runCycle(3, 3, 0);
+    expect(mid).toMatchObject({ current: 150, trainingMax: 135, week: 4, olyProgressCycle: 1 });
     expect(end).toMatchObject({ current: 150, trainingMax: 135, week: 1, cycle: 2 });
+  });
+  it("next cycle: +5 again at the end of its week 3", async () => {
+    await runCycle(3, 3, 3);
+    const { mid } = await runCycle(3, 3, 3);
+    expect(mid).toMatchObject({ current: 160, trainingMax: 145, week: 4, cycle: 2, olyProgressCycle: 2 });
+  });
+  it("state saved before v0.8, already in week 4 → O3 runs when week 4 is finished", async () => {
+    await TrainingService.save({ standardId: "ol", trainingMax: 135, current: 150, cycle: 1, week: 4 });
+    for (const w of [1, 2, 3] as const) await SessionService.log("ol", 1, w, 0, triple(130, 3));
+    const end = await LiftService.record(oly, await olyState(), 0, triple(80, 3));
+    expect(end).toMatchObject({ current: 155, trainingMax: 140, week: 1, cycle: 2, olyProgressCycle: 1 });
+  });
+  it("skipping the week 3 card finishes week 3 and holds CURRENT (O3-R1)", async () => {
+    await LiftService.record(oly, await olyState(), 0, triple(115, 3));
+    await LiftService.record(oly, await olyState(), 0, triple(120, 3));
+    const w4 = await LiftService.record(oly, await olyState(), 0, undefined, true);
+    expect(w4).toMatchObject({ current: 150, trainingMax: 135, week: 4, olyProgressCycle: 1 });
   });
 });

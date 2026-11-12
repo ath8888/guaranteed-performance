@@ -28,7 +28,17 @@ describe("WeekService.catchUp (shared S3 on plan open)", () => {
     expect(next).toMatchObject({ cycle: 1, week: 3, current: 150, trainingMax: 135 });
     expect(await TrainingService.get("ol")).toMatchObject({ week: 3 });
   });
-  it("Olympic stuck on W4 after all triples → cycle end (+5), cycle 2 W1", async () => {
+  it("Olympic stuck on W3 after all triples → O3 (+5) at the end of week 3, W4", async () => {
+    const t = await stuck({ standardId: "ol", trainingMax: 135, current: 150, cycle: 1, week: 3 });
+    for (const w of [1, 2, 3]) await SessionService.log("ol", 1, w, 0, triple(3));
+    expect(await WeekService.catchUp(oly, t)).toMatchObject({ cycle: 1, week: 4, current: 155, trainingMax: 140, olyProgressCycle: 1 });
+  });
+  it("Olympic stuck on W4 after O3 already ran this cycle → no second +5", async () => {
+    const t = await stuck({ standardId: "ol", trainingMax: 140, current: 155, cycle: 1, week: 4, olyProgressCycle: 1 });
+    for (const w of [1, 2, 3, 4]) await SessionService.log("ol", 1, w, 0, triple(3));
+    expect(await WeekService.catchUp(oly, t)).toMatchObject({ cycle: 2, week: 1, current: 155, trainingMax: 140 });
+  });
+  it("Olympic saved before v0.8, stuck on W4 after all triples → O3 at the end of week 4 (+5), cycle 2 W1", async () => {
     const t = await stuck({ standardId: "ol", trainingMax: 135, current: 150, cycle: 1, week: 4 });
     for (const w of [1, 2, 3]) await SessionService.log("ol", 1, w, 0, triple(3));
     await SessionService.log("ol", 1, 4, 0, triple(3));

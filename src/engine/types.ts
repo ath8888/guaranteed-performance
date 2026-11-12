@@ -48,6 +48,7 @@ export interface TrainingState {
   week: 1 | 2 | 3 | 4;
   cal?: CalisthenicsState; // calisthenics standards only (trainingMax unused there)
   run?: RunState;          // run standards only (trainingMax unused there)
+  olyProgressCycle?: number; // olympic only: cycle in which O3 already ran (end of week 3)
 }
 
 // Run: Start / Current / Target are race times in seconds; paces are seconds per mile.

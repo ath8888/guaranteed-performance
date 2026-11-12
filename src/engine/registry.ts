@@ -9,6 +9,8 @@ export interface StandardEngine {
   wavesToTarget(s: Standard, trainingMax: number): number;
   // Optional: engine-specific end-of-cycle TM rule (default: week 3 top set via nextTM)
   cycleEndTM?(s: Standard, t: TrainingState, logs: SessionLog[]): number;
+  // Optional: week whose end brings the CURRENT increase (default 4 = cycle end). Used by est. completion.
+  progressWeek?: 1 | 2 | 3 | 4;
   // Optional overrides for engines not driven by a barbell training max (e.g. calisthenics)
   currentValue?(s: Standard, t: TrainingState): number;
   estWeeksToTarget?(s: Standard, t: TrainingState, current: number): number; // from the start of the current week; 0 = target reached
