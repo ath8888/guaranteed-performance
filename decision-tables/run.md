@@ -1,6 +1,6 @@
 # GuaranteedStandards — Run Category Decision Tables
 
-**Status:** v0.3 — Run engine built to this file (2026-11-09).
+**Status:** v1.0 — rules rebuilt and approved by A.D. (2026-11-12). Engine NOT built to this version yet (still runs v0.3).
 **Owner:** A.D.
 **Engine:** Run engine (`run.ts`, `RunService.ts`). Claude Code updates this engine when this file changes.
 
@@ -23,7 +23,7 @@
 ## Shared rules
 
 See `shared.md`: CURRENT is the source of truth (S1-R1), weeks (S3), skips (S4), est. completion (S5).
-For Run, CURRENT is the race time over the standard's distance, in seconds. Lower is better. It starts at START (R1), drops by half of each ladder step (R5), and is set by a faster Time Trial (R6). It never gets worse. Run has no TM and no 5 lb rounding.
+For Run, CURRENT is the race time over the standard's distance, in seconds. Lower is better. It starts at START (R1), can drop when the user moves up a ladder rung (R7), and is set by a faster Time Trial (R8). It never gets worse. Run has no TM and no 5 lb rounding. Run has no cycle-end rule: at the end of week 4 (S3-R3) nothing changes except the week.
 
 ## Definitions
 
@@ -32,14 +32,17 @@ For Run, CURRENT is the race time over the standard's distance, in seconds. Lowe
 | Run types | 800m, 1.5 mile, 3 mile, 5 mile. |
 | Short / long | Short = 800m and 1.5 mi. Long = 3 mi and 5 mi. |
 | Pace | Seconds per mile (s/mi). |
-| Session A | Interval session: a speed part and a threshold part. Short: speed first. Long: threshold first. |
+| Session A | Interval session, in this order: speed reps, then race-pace intervals, then (short types only) one optional threshold rep. |
 | Session B | Zone 2: easy, conversational run for a set number of minutes. |
-| Speed rep | A short fast rep over a set distance. The user logs the split. |
-| Threshold rep | A timed rep (minutes). The user logs the pace. |
-| Ladder part | The race-pace part of Session A. Short: speed reps. Long: threshold reps. |
-| Ladder pace | Target pace for the ladder part. Moves in 15 s/mi steps. |
-| Counter | Qualifying sessions in a row toward the next ladder step. |
-| Adjustment | Personal offset (s/mi) on the non-ladder part, learned from logged reps. |
+| Speed rep | A short fast rep over a set distance. The user logs the split and the rest after it. |
+| Race-pace interval | A timed rep at the current rung's pace. The user logs its length, its pace and the rest after it. This is the ladder part. |
+| Threshold rep | Short types only. One optional rep at the end of Session A. Any cardio (run, row, bike, treadmill…). No pace is given. |
+| Base pace | The pace every rung is measured from. New standards: the ladder pace from R1 (START race pace). |
+| Rung | One step of the ladder: a rep length and a pace (base pace minus an offset). |
+| Ladder | The list of rungs for a run type (R3). The user is always on one rung. |
+| Rest | Until heart rate is under 120 bpm or the user can talk normally again (talk test). Goal: 2:00 or less. |
+| Counter | Qualifying sessions in a row on the current rung. |
+| Run calculator | Riegel: time over a new distance = time × (new distance ÷ old distance)^1.06. |
 | Rounding | Paces and splits round to the nearest whole second. CURRENT is shown in whole seconds. |
 
 ---
@@ -53,153 +56,221 @@ For Run, CURRENT is the race time over the standard's distance, in seconds. Lowe
 |---|---|---|---|---|---|---|
 | R1-R1 | START race time | START | START ÷ distance in miles, rounded (race pace) | 0 | None | `[App]` |
 
+A new standard starts on rung 1 (R3). Its base pace is R1's ladder pace. Zone 2 starts at the start length (R9).
+
 ---
 
-## R2 — Distance plans
+## R2 — Session A
 
-**Question:** What does each run type prescribe?
+**Question:** What does Session A prescribe?
 **Hit policy:** Unique (one row per type)
 
-| ID | Type | Ladder part | Speed rep (rest) | Speed reps W1/W2/W3 | Threshold length W1/W2/W3 | Threshold reps W1/W2/W3 | Zone 2 min W1/W2/W3/W4 | Source |
-|---|---|---|---|---|---|---|---|---|
-| R2-R1 | 800m | Speed | 200m (1:00 jog) | 6 / 7 / 8 | 3 / 3 / 5 min | 2 / 3 / 2 | 25 / 30 / 35 / 20 | `[App]` |
-| R2-R2 | 1.5 mi | Speed | 400m (1:30 jog) | 5 / 6 / 7 | 5 / 5 / 7 min | 2 / 3 / 2 | 30 / 35 / 40 / 25 | `[App]` |
-| R2-R3 | 3 mi | Threshold | 400m (1:30 jog) | 2 / 3 / 4 | 5 / 5 / 7 min | 4 / 5 / 4 | 40 / 45 / 50 / 35 | `[App]` |
-| R2-R4 | 5 mi | Threshold | 400m (1:30 jog) | 2 / 3 / 4 | 7 / 7 / 7 min | 3 / 4 / 5 | 45 / 55 / 60 / 40 | `[App]` |
+| ID | Type | 1. Speed reps | 2. Race-pace intervals | 3. Threshold rep (OPTIONAL) | Source |
+|---|---|---|---|---|---|
+| R2-R1 | 800m | 2 × 100m | 4 reps at the current rung | 1 × 3 min, any cardio | `[AD]` |
+| R2-R2 | 1.5 mi | 2 × 200m | 4 reps at the current rung | 1 × 7 min, any cardio | `[AD]` |
+| R2-R3 | 3 mi | 2 × 400m | 4 reps at the current rung | None | `[AD]` |
+| R2-R4 | 5 mi | 2 × 400m | 4 reps at the current rung | None | `[AD]` |
 
-Threshold rest: 1:00 jog for 3 and 5 min reps, 1:30 for 7 min reps. Every Session A adds a 10 min easy warm-up and cool-down.
+Rest after every speed rep and race-pace interval follows the Rest definition. The threshold rep is logged for the record only and never changes anything. Skipping it does not affect the rest of Session A.
 
 ---
 
-## R3 — Weekly cards
+## R3 — Ladders
+
+**Question:** What rep length and pace does each rung prescribe?
+**Hit policy:** Unique (one row per type)
+
+Pace is base pace minus the offset. Always 4 reps.
+
+| ID | Type | Rungs 1–6 (length @ offset) | After that (k = 1, 2, 3…) | Source |
+|---|---|---|---|---|
+| R3-R1 | 800m | 45s @ 0 → 60s @ 0 → 75s @ 0 → 60s @ −15 → 75s @ −15 → 60s @ −30 | Rung 2k+2 = 60s @ −15k s/mi; rung 2k+3 = 75s @ −15k s/mi | `[AD]` |
+| R3-R2 | 1.5 mi | 90s @ 0 → 3 min @ 0 → 90s @ −15 → 3 min @ −15 → 90s @ −30 → 3 min @ −30 | Rung 2k+1 = 90s @ −15k s/mi; rung 2k+2 = 3 min @ −15k s/mi | `[AD]` |
+| R3-R3 | 3 mi | 3 min @ 0 → 5 min @ 0 → 7 min @ 0 → 5 min @ −30 → 7 min @ −30 → 5 min @ −60 | Rung 2k+2 = 5 min @ −30k s/mi; rung 2k+3 = 7 min @ −30k s/mi | `[AD]` |
+| R3-R4 | 5 mi | Same as 3 mi | Same as 3 mi | `[AD]` |
+
+A.D. wrote rungs 1–6 (1–5 for 1.5 mi). The pattern after them is "for now" while A.D. tests it.
+
+---
+
+## R4 — Weekly cards
 
 **Question:** What cards does the user get each week?
 **Hit policy:** Unique (one row per week group)
 
 | ID | Week | Card 1 | Card 2 | Card 3 | Source |
 |---|---|---|---|---|---|
-| R3-R1 | 1–3 | Session A (that week's reps, R2) | Session B — Zone 2 | Session A (same as card 1) | `[App]` |
-| R3-R2 | 4 | Session A — Time Trial (race distance, all-out) | Session B — Zone 2 (W4 minutes) | Session A deload: reps = half of W3, rounded up; threshold length = W1 | `[App]` |
+| R4-R1 | 1–3 | Session A | Session B — Zone 2 | Session A | `[AD]` |
+| R4-R2 | 4 | Session A | Session B — Zone 2 | Time Trial — OPTIONAL (race distance, all-out) | `[AD]` |
 
-Cards can be done in any order. Every card can be skipped. Cards have no Recommended / Optional tag.
+Cards can be done in any order. Every card can be skipped (S4). The Time Trial and the threshold rep are tagged OPTIONAL. No other card or part is tagged.
 
 ---
 
-## R4 — Paces
+## R5 — Targets shown
 
-**Question:** What pace does each part get?
+**Question:** What target does each part show?
 **Hit policy:** Collect (one row per part)
 
-| ID | Part | → Pace | Source |
+| ID | Part | → Target | Source |
 |---|---|---|---|
-| R4-R1 | Ladder part (short: speed; long: threshold) | Ladder pace | `[App]` |
-| R4-R2 | Threshold, short types | CURRENT → Riegel 10K pace (exponent 1.08) + 10 s/mi + adjustment | `[App]` |
-| R4-R3 | Speed, long types | CURRENT → Riegel mile pace (exponent 1.06) + adjustment | `[App]` |
-| R4-R4 | Zone 2 (all types) | Ceiling: threshold formula pace (no adjustment) + 75 s/mi. Run at that pace or slower. | `[App]` |
+| R5-R1 | Speed rep | Split = CURRENT converted to the rep distance (run calculator), rounded | `[AD]` |
+| R5-R2 | Race-pace interval | Current rung's length and pace (R3) | `[AD]` |
+| R5-R3 | Threshold rep | Length only (R2). No pace. | `[AD]` |
+| R5-R4 | Zone 2 | Length only (R9). No pace. Effort: talk test (full sentences), or heart rate at or under 180 − age. The user logs minutes and pace afterwards. | `[AD]` |
+| R5-R5 | Time Trial | Race distance, all-out. No target. | `[AD]` |
 
-Speed rep split = pace × rep distance, rounded. Riegel: time over a new distance = time × (new ÷ old)^exponent. The threshold formula for long types uses exponent 1.06.
+Speed reps, threshold reps and Zone 2 pace are logged for the record only and never change anything.
 
 ---
 
-## R5 — Ladder after Session A (weeks 1–3)
+## R6 — Ladder after Session A
 
-**Question:** When a Session A in weeks 1–3 is logged, what happens to the ladder and CURRENT?
+**Question:** When a Session A is logged, what happens to the rung and counter?
 **Hit policy:** First (checked top to bottom)
 
-| ID | Condition | → Ladder pace | → CURRENT | → Counter | Source |
-|---|---|---|---|---|---|
-| R5-R1 | Session A skipped | Unchanged | Unchanged | Unchanged | `[App]` |
-| R5-R2 | Any ladder rep slower than target, or not done | Unchanged | Unchanged | 0 (no penalty) | `[App]` |
-| R5-R3 | Every ladder rep hit, and the average is at least one full step faster than the ladder pace | − 15 s/mi per full step | − half of each step, as race time | 0 | `[App]` |
-| R5-R4 | Every ladder rep hit, counter reaches 2 | − 15 s/mi | − half a step, as race time | 0 | `[App]` |
-| R5-R5 | Every ladder rep hit (otherwise) | Unchanged | Unchanged | + 1 | `[App]` |
+A rung is **met** when all 4 race-pace intervals are logged, every one is at least the rung's length and at or faster than its pace, and all 3 rests between them are 2:00 or less. Any rung on the ladder can be met, including ones above the current rung.
 
-"Half a step, as race time" = 7.5 s/mi × distance in miles (800m: 3.7 s; 1.5 mi: 11.3 s; 3 mi: 22.5 s; 5 mi: 37.5 s).
-The week 4 deload Session A never counts toward the ladder.
+| ID | Condition | → Rung | → Counter | → CURRENT | Source |
+|---|---|---|---|---|---|
+| R6-R1 | Session A skipped | Unchanged | Unchanged | Unchanged | `[App]` |
+| R6-R2 | A rung above the current rung is met | The highest rung met | 1 | R7 | `[AD]` |
+| R6-R3 | The current rung is met, and the counter reaches 2 | Next rung | 0 | R7 | `[AD]` |
+| R6-R4 | The current rung is met (otherwise) | Unchanged | + 1 | Unchanged | `[AD]` |
+| R6-R5 | Otherwise (current rung not met: slower, shorter, a rest over 2:00, or not all logged) | Unchanged | 0 (no penalty) | Unchanged | `[AD]` |
+
+R6-R2 lets the user skip rungs: one session that meets a higher rung puts them on it, already counting as their first qualifying session there.
+The rest after the last (4th) interval does not count. Rests after speed reps do not count.
+Every Session A counts, including week 4's.
 
 ---
 
-## R6 — Time Trial (week 4)
+## R7 — CURRENT on a rung move
+
+**Question:** When the user moves up (R6-R2 or R6-R3), what happens to CURRENT?
+**Hit policy:** First (checked top to bottom)
+
+Converted time = one rep (average logged length, at average logged pace, of the session that caused the move) converted to the race distance with the run calculator, rounded.
+
+| ID | Condition | → CURRENT | Source |
+|---|---|---|---|
+| R7-R1 | Converted time faster than CURRENT | Converted time | `[AD]` |
+| R7-R2 | Otherwise | Unchanged | `[AD]` |
+
+Note: one rep is much shorter than the race, so the converted time is usually slower than CURRENT on the early rungs. CURRENT then holds, and the Time Trial (R8) is what moves it. A.D. chose this over counting all 4 reps as one run, which was too generous.
+
+---
+
+## R8 — Time Trial (week 4, optional)
 
 **Question:** When the Time Trial is logged, what happens?
 **Hit policy:** First (checked top to bottom)
 
-| ID | Condition | → CURRENT | → Counter | → Ladder pace | Source |
-|---|---|---|---|---|---|
-| R6-R1 | Skipped, or no time logged | Unchanged | Unchanged | Unchanged | `[App]` |
-| R6-R2 | Faster than CURRENT | Trial time | + 1 (at 2: ladder − 15 s/mi, counter 0) | See counter | `[App]` |
-| R6-R3 | Equal or slower than CURRENT | Unchanged | 0 | Unchanged | `[AD]` |
+| ID | Condition | → CURRENT | → Rung and counter | Source |
+|---|---|---|---|---|
+| R8-R1 | Skipped, or no time logged | Unchanged | Unchanged | `[App]` |
+| R8-R2 | Faster than CURRENT | Trial time | Unchanged | `[App]` |
+| R8-R3 | Equal or slower than CURRENT | Unchanged | Unchanged | `[AD]` |
 
-Every trial time is saved (History, chart). Only a faster one changes CURRENT.
-
----
-
-## R7 — Personal adjustment (non-ladder part)
-
-**Question:** When any Session A is logged (weeks 1–4), what happens to the non-ladder part's adjustment?
-**Hit policy:** First (checked top to bottom)
-
-| ID | Condition | → Adjustment | Source |
-|---|---|---|---|
-| R7-R1 | Any non-ladder rep not logged | Unchanged | `[App]` |
-| R7-R2 | Average pace faster than planned | Average pace − formula pace (future reps use it) | `[App]` |
-| R7-R3 | Otherwise (equal or slower) | Unchanged | `[App]` |
-
-Zone 2 is never adjusted. Session B (Zone 2) is logged for the record only and never changes anything.
+Every trial time is saved (History). Only a faster one adds a chart point. The trial neither counts toward nor breaks the counter.
 
 ---
 
-## R8 — Weeks to target (for est. completion, shared S5)
+## R9 — Zone 2 length
+
+**Question:** How long is Session B?
+**Hit policy:** Unique (one row per type)
+
+| ID | Type | Start | Cap | Source |
+|---|---|---|---|---|
+| R9-R1 | 800m | 20 min | 45 min | `[AD]` |
+| R9-R2 | 1.5 mi | 25 min | 50 min | `[AD]` |
+| R9-R3 | 3 mi | 30 min | 60 min | `[AD]` |
+| R9-R4 | 5 mi | 40 min | 75 min | `[AD]` |
+
+After every 2 Zone 2 runs logged at full length (logged minutes ≥ prescribed), the length goes up 5 min, up to the cap. A Zone 2 run that is skipped or short does not count and does not reset the count.
+
+---
+
+## R10 — Weeks to target (for est. completion, shared S5)
 
 **Question:** How many weeks until CURRENT reaches the target time?
 **Hit policy:** First (checked top to bottom)
 
 | ID | Condition | → Weeks | Source |
 |---|---|---|---|
-| R8-R1 | CURRENT at or below target | 0 (REACHED) | `[App]` |
-| R8-R2 | 2+ weeks since the standard was added, and CURRENT has improved | (CURRENT − target) ÷ observed gain per week, rounded up | `[App]` |
-| R8-R3 | Otherwise | (CURRENT − target) ÷ (3.75 s/mi × distance in miles) per week, rounded up (at least 1) | `[App]` |
+| R10-R1 | CURRENT at or below target | 0 (REACHED) | `[App]` |
+| R10-R2 | 2+ weeks since the standard was added, and CURRENT has improved | (CURRENT − target) ÷ observed gain per week, rounded up | `[App]` |
+| R10-R3 | Otherwise | (CURRENT − target) ÷ default gain per week, rounded up (at least 1) | `[AD]` |
 
-3.75 s/mi per week = one ladder step every 2 weeks, half of it to CURRENT. Observed gain = (START − latest CURRENT) ÷ weeks since added.
+Observed gain = (START − latest CURRENT) ÷ weeks since added.
+Default gain = one rung every 2 weeks, so one pace step every 4 weeks: long types 7.5 s/mi × distance per week (3 mi: 22.5 s; 5 mi: 37.5 s); short types 3.75 s/mi × distance per week (800m: 1.9 s; 1.5 mi: 5.6 s).
+
+---
+
+## R11 — Standards saved before v1.0
+
+**Question:** What happens to a run standard saved under the old rules (v0.3)?
+**Hit policy:** Unique
+
+| ID | Input | → Result | Source |
+|---|---|---|---|
+| R11-R1 | Run state with an old ladder pace / adjustments and no rung | Rung 1, counter 0, base pace = CURRENT ÷ distance in miles (rounded). CURRENT unchanged. Zone 2 at the start length (R9). Old ladder pace and adjustments dropped. Old logs stay in History. | `[AD]` |
 
 ---
 
 ## Examples (Given / When / Then)
 
-**E1 — Starting paces (R1, R4-R1)**
+**E1 — New long standard (R1, R2-R3, R3-R3, R5-R1)**
+Given a 3 mi standard with START 24:00
+When the user opens week 1
+Then Session A is 2 × 400m in 1:43, then 4 × 3 min @ 8:00/mi, with no threshold rep
+
+**E2 — New short standard (R1, R2-R1, R3-R1, R5-R1)**
 Given an 800m standard with START 2:40
 When the user opens week 1
-Then the ladder pace is 5:22/mi and each speed rep reads "200m @ 5:22/mi in 0:40secs"
+Then Session A is 2 × 100m in 0:18, then 4 × 45s @ 5:22/mi, then 1 × 3 min threshold (OPTIONAL, any cardio)
 
-**E2 — Two qualifying sessions (R5-R4)**
-Given an 800m ladder pace of 5:22/mi, CURRENT 2:40, counter 1
-When the user hits every speed rep in Session A
-Then the ladder pace becomes 5:07/mi, CURRENT becomes 2:36 (160 − 3.7), counter 0
+**E3 — Two in a row, CURRENT holds (R6-R3, R7-R2)**
+Given a 3 mi standard on rung 5 (7 min @ 7:30), CURRENT 24:00, counter 1
+When the user logs 4 × 7:00 at 7:30/mi, every rest 2:00 or less
+Then the rung becomes 6 (5 min @ 7:00), counter 0, and CURRENT stays 24:00 (one rep converts to 24:08)
 
-**E3 — Jump (R5-R3)**
-Given an 800m ladder pace of 5:22/mi, CURRENT 2:40
-When the user hits every speed rep at an average of 4:50/mi (32 s faster)
-Then the ladder pace drops 2 steps to 4:52/mi and CURRENT becomes 2:33
+**E4 — Two in a row, CURRENT drops (R6-R3, R7-R1)**
+Given a 3 mi standard on rung 6 (5 min @ 7:00), CURRENT 24:00, counter 1
+When the user logs 4 × 5:00 at 7:00/mi, every rest 2:00 or less
+Then the rung becomes 7 (7 min @ 7:00), counter 0, and CURRENT becomes 22:53
 
-**E4 — A miss (R5-R2)**
+**E5 — Skipping a rung (R6-R2)**
+Given a 3 mi standard on rung 1 (3 min @ 8:00), counter 0
+When the user logs 4 × 5:00 at 7:58/mi, every rest 2:00 or less
+Then the rung becomes 2 (the highest met; rung 3 needs 7 min, rung 4 needs 7:30/mi), counter 1, and CURRENT stays 24:00 (converts to 26:15)
+
+**E6 — Rest too long (R6-R5)**
 Given counter 1
-When one ladder rep is slower than target
-Then the counter becomes 0; ladder pace and CURRENT stay the same
+When every interval hits the rung but one rest is 2:30
+Then the counter becomes 0; rung and CURRENT stay the same
 
-**E5 — Slower Time Trial (R6-R3)**
-Given CURRENT 2:36 and counter 1
-When the user runs the Time Trial in 2:40
-Then CURRENT stays 2:36 and the counter becomes 0
+**E7 — Faster Time Trial (R8-R2)**
+Given week 4, CURRENT 24:00, rung 5, counter 1
+When the user runs the Time Trial in 23:30
+Then CURRENT becomes 23:30; rung 5 and counter 1 are unchanged
 
-**E7 — Faster Time Trial (R6-R2)**
-Given CURRENT 2:36 and counter 0
-When the user runs the Time Trial in 2:31
-Then CURRENT becomes 2:31 and the counter becomes 1
+**E8 — Slower Time Trial (R8-R3)**
+Given CURRENT 23:30
+When the user runs the Time Trial in 23:45
+Then CURRENT stays 23:30 and the time is saved in History
 
-**E6 — Week 4 deload (R3-R2)**
-Given an 800m standard in week 4
-When the user opens the deload Session A
-Then it has 4 speed reps (half of 8) and 1 × 3 min threshold rep (half of 2, W1 length)
+**E9 — Zone 2 grows (R9-R3)**
+Given a 3 mi standard with Zone 2 at 30 min
+When the user logs two Zone 2 runs of 30 min or more
+Then Zone 2 becomes 35 min
+
+**E10 — Old standard (R11-R1)**
+Given a 3 mi standard saved under v0.3 with CURRENT 23:00
+When the app reads it
+Then it is on rung 1: 4 × 3 min @ 7:40/mi, counter 0, CURRENT 23:00
 
 ---
 
@@ -215,3 +286,6 @@ Then it has 4 speed reps (half of 8) and 1 × 3 min threshold rep (half of 2, W1
 | 2026-11-09 | R5-R3, R5-R4 | Kept: each ladder step also takes half a step off CURRENT between trials. | A.D. decision |
 | 2026-11-09 | R6-R3 | A Time Trial equal to or slower than CURRENT no longer sets CURRENT; it holds. The time is still saved. CURRENT never gets worse. | A.D. decision |
 | 2026-11-09 | R6-R3 | Engine built to v0.2 rules; status v0.3. Only a faster trial adds a chart point. | Build |
+| 2026-11-12 | R2–R11 | v1.0 draft: every rule after R1 rebuilt. Ladder is now rungs of rep length and pace (R3), with 4 race-pace intervals per session. A rung is met only with every rest ≤ 2:00; 2 in a row moves up, and a higher rung can be met to skip ahead (R6). CURRENT on a move = one rep converted with the run calculator, only if faster (R7). Speed reps: 2 per session, split from CURRENT. Short types add an optional threshold rep, any cardio. Weeks: A / B / A; week 4: A / B / optional Time Trial (deload removed). Zone 2 length grows +5 min per 2 full runs to a cap; no pace given, user logs it (R9). Personal adjustment (old R7) removed. Old standards restart on rung 1 from CURRENT pace (R11). | A.D. rebuild before Play Store release |
+| 2026-11-12 | Definitions | Session A, speed rep, threshold rep updated; ladder part renamed race-pace interval; ladder pace replaced by base pace and rung; adjustment removed; rest and run calculator added. | Broken by the v1.0 rules |
+| 2026-11-12 | All | v1.0 approved. | A.D. approval |
